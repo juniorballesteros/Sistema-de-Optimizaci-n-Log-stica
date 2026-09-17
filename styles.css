@@ -1,0 +1,291 @@
+/* RESET Y VARIABLES DE DISEÑO - PALETA ROJA Y LIMPIA */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    transition: all 0.3s ease;
+}
+
+body {
+    /* Imagen enfocada en organización de inventario y almacén */
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(185, 28, 28, 0.78)), 
+                url('https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1920&auto=format&fit=crop');
+    
+    /* Configuración de imagen y tamaño */
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+
+    /* EFECTO PARALLAX: Mantiene la imagen fija creando la ilusión de movimiento al hacer scroll */
+    background-attachment: fixed;
+
+    /* EFECTO SMOOTH SCROLL: Desplazamiento suave para toda la página */
+    scroll-behavior: smooth;
+
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    width: 100%;
+    max-width: 850px;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ANIMACIÓN DE ENTRADA */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ENCABEZADOS */
+.header {
+    text-align: center;
+    margin-bottom: 25px;
+    color: #ffffff;
+}
+
+.header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.subtitulo {
+    color: #fca5a5;
+    font-size: 1.05rem;
+    margin-top: 5px;
+}
+
+/* TARJETAS CON FONDO BLANCO Y SOMBRAS SUAVES */
+.card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+/* TARJETA DE HISTORIA DE USUARIO */
+.info-card {
+    border-left: 5px solid #dc2626;
+    background: #fef2f2;
+}
+
+.info-card h2 {
+    font-size: 1.2rem;
+    color: #991b1b;
+    margin-bottom: 10px;
+}
+
+.info-card p {
+    color: #450a0a;
+    line-height: 1.5;
+    margin-bottom: 6px;
+}
+
+/* ESTILOS PARA LAS PESTAÑAS DE AUTENTICACIÓN */
+.tabs-auth {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #e5e7eb;
+    padding-bottom: 10px;
+}
+
+.btn-tab {
+    flex: 1;
+    padding: 10px;
+    background: #f3f4f6;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    color: #4b5563;
+    cursor: pointer;
+}
+
+.btn-tab.active {
+    background: #dc2626;
+    color: white;
+}
+
+.auth-form h3 {
+    margin-bottom: 15px;
+    color: #1f2937;
+    font-size: 1.1rem;
+}
+
+/* CAMPOS DE ENTRADA (INPUTS) */
+.input-group {
+    margin-bottom: 16px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 0.95rem;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 1rem;
+    background: #f9fafb;
+    outline: none;
+}
+
+.input-group input:focus {
+    border-color: #dc2626;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+/* BOTONES PRINCIPALES EN ROJO ACCENT */
+.btn-primary {
+    background-color: #dc2626;
+    color: white;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 1rem;
+    width: 100%;
+    box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3);
+}
+
+.btn-primary:hover {
+    background-color: #b91c1c;
+    box-shadow: 0 6px 15px rgba(220, 38, 38, 0.4);
+}
+
+.btn-secondary {
+    background-color: #4b5563;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-secondary:hover {
+    background-color: #374151;
+}
+
+/* MENSAJES DE ESTADO */
+#mensaje-auth {
+    margin-top: 15px;
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: bold;
+}
+
+#mensaje-auth.error {
+    color: #b91c1c;
+    background-color: #fef2f2;
+    border: 1px solid #fca5a5;
+}
+
+#mensaje-auth.exito {
+    color: #15803d;
+    background-color: #f0fdf4;
+    border: 1px solid #86efac;
+}
+
+/* PANTALLA INTERNA DEL INVENTARIO */
+.header-app {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    color: white;
+}
+
+.badge {
+    background-color: #16a34a;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-block;
+    margin-top: 5px;
+}
+
+.grid-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.grid-full {
+    grid-column: span 3;
+}
+
+/* TABLA DE PRODUCTOS */
+.tabla-inventario {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.tabla-inventario th {
+    background-color: #f3f4f6;
+    color: #374151;
+    font-weight: 700;
+    padding: 12px;
+    text-align: left;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.tabla-inventario td {
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    color: #1f2937;
+}
+
+.tabla-inventario tr:hover td {
+    background-color: #f9fafb;
+}
+
+.btn-edit {
+    background-color: #f59e0b;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.btn-edit:hover {
+    background-color: #d97706;
+}
+
+/* PIE DE PÁGINA Y CRÉDITOS ACADÉMICOS */
+.footer-creditos {
+    text-align: center;
+    margin-top: 25px;
+    padding: 15px;
+    color: #fca5a5;
+    font-size: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.footer-creditos strong {
+    color: #ffffff;
+}

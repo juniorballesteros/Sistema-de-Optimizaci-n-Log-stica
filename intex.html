@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Inventario - Ubaté</title>
+    
+    <!-- Íconos FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Estilos CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- PANTALLA 1: AUTENTICACIÓN Y REGISTRO -->
+    <div id="pantalla-login" class="container">
+        <header class="header">
+            <h1><i class="fa-solid fa-boxes-packing"></i> Sistema de Optimización Logística</h1>
+            <p class="subtitulo">Gestión de Suministros Alimentarios y Cadenas de Distribución - Ubaté</p>
+        </header>
+
+        <!-- 
+            DOCUMENTACIÓN TÉCNICA Y TRAZABILIDAD ÁGIL (HU-01)
+            ------------------------------------------------
+            Como: Administrador de logística y stock alimentario en Ubaté.
+            Quiero: Consultar y actualizar el stock y precios de productos alimenticios en tiempo real.
+            Para: Garantizar el control de lote, evitar diferencias en inventario y asegurar el flujo de abastecimiento.
+        -->
+
+        <!-- TARJETA DE AUTENTICACIÓN DINÁMICA -->
+        <section class="card login-card">
+            <div class="tabs-auth">
+                <button id="tab-login" class="btn-tab active"><i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión</button>
+                <button id="tab-register" class="btn-tab"><i class="fa-solid fa-user-plus"></i> Crear Cuenta</button>
+            </div>
+
+            <!-- FORMULARIO 1: INICIAR SESIÓN -->
+            <form id="form-login" class="auth-form">
+                <h3>Ingresar al Sistema</h3>
+                <div class="input-group">
+                    <label for="usuario">Usuario / Gestor de Logística:</label>
+                    <input type="text" id="usuario" placeholder="Ej. gestor_alimentos" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-primary">Ingresar al Inventario</button>
+            </form>
+
+            <!-- FORMULARIO 2: REGISTRAR NUEVO USUARIO -->
+            <form id="form-register" class="auth-form hidden">
+                <h3>Registrar Nuevo Operador</h3>
+                <div class="input-group">
+                    <label for="reg-usuario">Nuevo Usuario:</label>
+                    <input type="text" id="reg-usuario" placeholder="Crea un nombre de usuario" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-password">Nueva Contraseña:</label>
+                    <input type="password" id="reg-password" placeholder="Crea tu contraseña" required>
+                </div>
+                <button type="submit" class="btn-primary">Guardar y Registrar Cuenta</button>
+            </form>
+
+            <!-- Mensaje de estado -->
+            <div id="mensaje-auth" class="hidden"></div>
+        </section>
+    </div>
+
+    <!-- PANTALLA 2: MÓDULO DE STOCK Y PRECIOS -->
+    <div id="pantalla-app" class="container hidden">
+        <header class="header-app">
+            <div>
+                <h2><i class="fa-solid fa-warehouse"></i> Control de Stock de Productos Alimenticios</h2>
+                <span id="estado-conexion" class="badge online">
+                    <i class="fa-solid fa-database"></i> Módulo Local (LocalStorage Activo) | <strong id="nombre-usuario-activo"></strong>
+                </span>
+            </div>
+            <button id="btn-logout" class="btn-secondary"><i class="fa-solid fa-power-off"></i> Cerrar Sesión</button>
+        </header>
+
+        <!-- Formulario para modificar/agregar productos -->
+        <section class="card">
+            <h3><i class="fa-solid fa-pen-to-square"></i> Registrar o Modificar Producto Alimentario</h3>
+            <form id="form-producto" class="grid-form">
+                <input type="hidden" id="prod-id">
+                <div class="input-group">
+                    <label for="prod-nombre">Descripción del Alimento / Producto:</label>
+                    <input type="text" id="prod-nombre" placeholder="Ej. Lácteos, Granos, Enlatados" required>
+                </div>
+                <div class="input-group">
+                    <label for="prod-stock">Stock Disponible (Unidades):</label>
+                    <input type="number" id="prod-stock" min="0" placeholder="0" required>
+                </div>
+                <div class="input-group">
+                    <label for="prod-precio">Precio Unitario ($ COP):</label>
+                    <input type="number" id="prod-precio" min="0" placeholder="12000" required>
+                </div>
+                <button type="submit" class="btn-primary grid-full"><i class="fa-solid fa-floppy-disk"></i> Guardar Cambios</button>
+            </form>
+        </section>
+
+        <!-- Tabla del Núcleo de Inventario -->
+        <section class="card">
+            <h3><i class="fa-solid fa-list-check"></i> Catálogo de Suministros Registrados</h3>
+            <table class="tabla-inventario">
+                <thead>
+                    <tr>
+                        <th>Producto / Alimento</th>
+                        <th>Stock Actual</th>
+                        <th>Precio Unitario</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-body">
+                    <!-- Contenido cargado dinámicamente -->
+                </tbody>
+            </table>
+        </section>
+
+        <!-- PIE DE PÁGINA PARA ACREDITACIÓN ACADÉMICA -->
+        <footer class="footer-creditos">
+            <p><strong>Proyecto de Aula:</strong> Sistema de Gestión de Inventarios v1.0</p>
+            <p>Desarrollado por el equipo de ingeniería | Ubaté - 2026</p>
+        </footer>
+    </div>
+
+    <!-- Script de lógica -->
+    <script src="script.js"></script>
+</body>
+</html>
