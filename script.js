@@ -7,11 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
         "Montería": { lat: 8.7479, lng: -75.8814 }
     };
 
-    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v7')) || {
+    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v8')) || {
         "distribuidora_ubate": {
             password: "Admin123*",
             ciudad: "Ubaté",
-            direccion: "Calle Principal # 4-20",
+            direccion: "Bodega 1 Principal",
             logo: "https://cdn-icons-png.flaticon.com/512/2897/2897785.png",
             lat: 5.3114,
             lng: -73.8169,
@@ -33,9 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v7') || null;
+    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v8') || null;
     let modoOnline = true;
-    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v7')) || [];
+    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v8')) || [];
     let mapaPrincipal = null;
     let mapaRegistro = null;
     let marcadorRegistro = null;
@@ -61,6 +61,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSincronizar = document.getElementById('btn-sincronizar');
     const countCola = document.getElementById('count-cola');
     const btnLogout = document.getElementById('btn-logout');
+
+    const btnEditarPerfil = document.getElementById('btn-editar-perfil');
+    const modalPerfil = document.getElementById('modal-perfil');
+    const btnCerrarPerfil = document.getElementById('btn-cerrar-perfil');
+    const formEditarPerfil = document.getElementById('form-editar-perfil');
+    const perfilCiudad = document.getElementById('perfil-ciudad');
+    const perfilDireccion = document.getElementById('perfil-direccion');
+    const perfilLogo = document.getElementById('perfil-logo');
 
     const btnVistaMapa = document.getElementById('btn-vista-mapa');
     const btnVistaComparador = document.getElementById('btn-vista-comparador');
@@ -100,8 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tablaReportesBody = document.getElementById('tabla-reportes-body');
 
     function guardarEnStorage() {
-        localStorage.setItem('bd_logistica_ubate_v7', JSON.stringify(baseDeDatosUsuarios));
-        localStorage.setItem('cola_sync_ubate_v7', JSON.stringify(colaSincronizacion));
+        localStorage.setItem('bd_logistica_ubate_v8', JSON.stringify(baseDeDatosUsuarios));
+        localStorage.setItem('cola_sync_ubate_v8', JSON.stringify(colaSincronizacion));
     }
 
     function mostrarMensaje(msg, tipo) {
@@ -165,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inicializarMapaRegistro();
     });
 
-    // === REGISTRO DE EMPRESA CON LOGO Y COORDENADAS ===
+    // === REGISTRO DE EMPRESA ===
     formRegister.addEventListener('submit', (e) => {
         e.preventDefault();
         const nuevoUsuario = document.getElementById('reg-usuario').value.trim();
@@ -228,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (baseDeDatosUsuarios[usr] && baseDeDatosUsuarios[usr].password === pass) {
             usuarioSesionActiva = usr;
-            localStorage.setItem('sesion_activa_ubate_v7', usr);
+            localStorage.setItem('sesion_activa_ubate_v8', usr);
             iniciarApp();
         } else {
             mostrarMensaje("Usuario o contraseña incorrectos.", "error");
@@ -237,11 +245,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnLogout.addEventListener('click', () => {
         usuarioSesionActiva = null;
-        localStorage.removeItem('sesion_activa_ubate_v7');
+        localStorage.removeItem('sesion_activa_ubate_v8');
         pantallaApp.classList.add('hidden');
         pantallaLogin.classList.remove('hidden');
         formLogin.reset();
         mensajeAuth.classList.add('hidden');
+    });
+
+    // === GESTIÓN DEL PERFIL DE LA EMPRESA (EDITAR) ===
+    btnEditarPerfil.addEventListener('click', () => {
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        if (!usrData) return;
+
+        perfilCiudad.value = usrData.ciudad || "Ubaté";
+        perfilDireccion.value = usrData.direccion || "";
+        perfilLogo.value = usrData.logo || "";
+
+        modalPerfil.classList.remove('hidden');
+    });
+
+    btnCerrarPerfil.addEventListener('click', () => modalPerfil.classList.add('hidden'));
+
+    formEditarPerfil.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        if (!usrData) return;
+
+        usrData.ciudad = perfilCiudad.value;
+        usrData.direccion = perfilDireccion.value.trim();
+        usrData.logo = perfilLogo.value.trim();
+
+        guardarEnStorage();
+        lblCiudadUsuario.textContent = usrData.ciudad;
+        modalPerfil.classList.add('hidden');
+        alert("¡Perfil de empresa actualizado con éxito!");
     });
 
     function iniciarApp() {

@@ -41,7 +41,7 @@
             <form id="form-login" class="auth-form">
                 <h3>Ingresar al Sistema</h3>
                 <div class="input-group">
-                    <label for="usuario">Usuario / Gestor de Logística:</label>
+                    <label for="usuario">Usuario / Nombre de Empresa:</label>
                     <input type="text" id="usuario" placeholder="Ej. empresa_ubate" required>
                 </div>
                 <div class="input-group">
@@ -51,12 +51,12 @@
                 <button type="submit" class="btn-primary">Ingresar al Inventario</button>
             </form>
 
-            <!-- FORMULARIO 2: REGISTRAR NUEVO USUARIO CON LOGO Y MAPA -->
+            <!-- FORMULARIO 2: REGISTRAR NUEVO USUARIO -->
             <form id="form-register" class="auth-form hidden">
                 <h3>Registrar Empresa, Logo y Ubicación</h3>
                 <div class="input-group">
                     <label for="reg-usuario">Nombre de la Empresa / Usuario:</label>
-                    <input type="text" id="reg-usuario" placeholder="Ej. Alimentos S.A. Ubaté" required>
+                    <input type="text" id="reg-usuario" placeholder="Ej. Distribuciones del Norte" required>
                 </div>
                 <div class="input-group">
                     <label for="reg-ciudad">Ciudad Principal:</label>
@@ -69,14 +69,14 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label for="reg-direccion">Referencia o Dirección:</label>
-                    <input type="text" id="reg-direccion" placeholder="Ej. Bodega Principal Calle 4" required>
+                    <label for="reg-direccion">Referencia o Dirección de la Bodega:</label>
+                    <input type="text" id="reg-direccion" placeholder="Ej. Bodega 1 Principal" required>
                 </div>
                 <div class="input-group">
-                    <label for="reg-logo">URL del Logo o Foto de la Empresa (Opcional):</label>
+                    <label for="reg-logo">URL de la Foto / Logo de la Empresa:</label>
                     <input type="url" id="reg-logo" placeholder="https://ejemplo.com/tu-logo.png">
                     <small style="color: #6b7280; font-size: 0.75rem; display: block; margin-top: 2px;">
-                        💡 Puedes pegar el enlace de una imagen en internet para tu perfil.
+                        💡 Pega el enlace de una imagen de internet o avatar para tu perfil.
                     </small>
                 </div>
 
@@ -120,6 +120,7 @@
                 </div>
             </div>
             <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button id="btn-editar-perfil" class="btn-secondary" style="background-color: #d97706;"><i class="fa-solid fa-id-card"></i> Mi Perfil</button>
                 <button id="btn-vista-mapa" class="btn-secondary"><i class="fa-solid fa-map-location-dot"></i> Mapa Sedes</button>
                 <button id="btn-vista-comparador" class="btn-secondary" style="background-color: #2563eb;"><i class="fa-solid fa-scale-balanced"></i> Comparar Precios</button>
                 <button id="btn-reportes" class="btn-success"><i class="fa-solid fa-chart-line"></i> Reportes</button>
@@ -131,7 +132,7 @@
         <section id="seccion-mapa" class="card hidden">
             <h3><i class="fa-solid fa-map"></i> Mapa General de Centros de Distribución</h3>
             <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 10px;">
-                Ubicación interactiva y perfiles de cada empresa registrada.
+                Ubicación interactiva y perfiles visuales de cada empresa registrada.
             </p>
             <div id="mapa-sedes" style="width: 100%; height: 320px; border-radius: 8px; z-index: 1;"></div>
         </section>
@@ -140,7 +141,7 @@
         <section id="seccion-comparador" class="card hidden">
             <h3><i class="fa-solid fa-comments-dollar"></i> Comparador de Precios con Perfil de Empresas</h3>
             <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 12px;">
-                Visualiza el logo, la ciudad y el precio de los proveedores para optimizar compras.
+                Visualiza el logo corporativo, la ciudad y el precio de los competidores para optimizar compras.
             </p>
             <div class="input-group" style="max-width: 350px;">
                 <label for="select-producto-comparar">Selecciona el Alimento a Comparar:</label>
@@ -212,9 +213,40 @@
         </section>
 
         <footer class="footer-creditos">
-            <p><strong>Proyecto de Aula:</strong> Sistema de Gestión de Inventarios y Lotes v2.3</p>
+            <p><strong>Proyecto de Aula:</strong> Sistema de Gestión de Inventarios y Lotes v2.4</p>
             <p>Desarrollado por el equipo de ingeniería | Ubaté - 2026</p>
         </footer>
+    </div>
+
+    <!-- MODAL EDITAR PERFIL EMPRESA -->
+    <div id="modal-perfil" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-id-card"></i> Configurar Perfil de la Empresa</h3>
+                <button class="btn-close" id="btn-cerrar-perfil">&times;</button>
+            </div>
+            <form id="form-editar-perfil">
+                <div class="input-group">
+                    <label for="perfil-ciudad">Ciudad Principal:</label>
+                    <select id="perfil-ciudad" required>
+                        <option value="Ubaté">Ubaté (Cundinamarca)</option>
+                        <option value="Bogotá">Bogotá D.C.</option>
+                        <option value="Villavicencio">Villavicencio (Meta)</option>
+                        <option value="Pereira">Pereira (Risaralda)</option>
+                        <option value="Montería">Montería (Córdoba)</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="perfil-direccion">Referencia o Dirección (Ej. Bodega 1):</label>
+                    <input type="text" id="perfil-direccion" required>
+                </div>
+                <div class="input-group">
+                    <label for="perfil-logo">URL de la Foto / Logo de la Empresa:</label>
+                    <input type="url" id="perfil-logo" placeholder="https://ejemplo.com/tu-logo.png" required>
+                </div>
+                <button type="submit" class="btn-primary">Actualizar Perfil Corporativo</button>
+            </form>
+        </div>
     </div>
 
     <!-- MODAL MOVIMIENTO -->
