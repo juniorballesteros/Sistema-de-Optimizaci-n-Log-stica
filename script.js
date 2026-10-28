@@ -44,7 +44,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     stock: 50,
                     minimo: 10,
                     costoCompra: 8000,
-                    precio: 11424, // Calculated from Cost + IVA + Margin
+                    ivaPorcentaje: 19,
+                    margenPorcentaje: 30,
+                    precio: 11424,
                     lotes: [{ idLote: "lote_101", cantidad: 50, fechaVencimiento: "2026-11-15" }]
                 }
             ],
@@ -62,11 +64,13 @@ document.addEventListener('DOMContentLoaded', () => {
             inventario: [
                 {
                     id: "prod_bog_1",
-                    codigo: "REF-101",
+                    codigo: "REF-102",
                     nombre: "Queso Doble Crema 500g",
                     stock: 120,
                     minimo: 20,
                     costoCompra: 7500,
+                    ivaPorcentaje: 19,
+                    margenPorcentaje: 25,
                     precio: 10710,
                     lotes: [{ idLote: "lote_bog_1", cantidad: 120, fechaVencimiento: "2026-12-10" }]
                 }
@@ -90,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapaRegistro = null;
     let marcadorRegistro = null;
 
-    // ELEMENTOS DOM
+    // DOM Elements
     const pantallaLogin = document.getElementById('pantalla-login');
     const pantallaApp = document.getElementById('pantalla-app');
     const tabLogin = document.getElementById('tab-login');
@@ -129,8 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultadoComparacion = document.getElementById('resultado-comparacion');
 
     const inputFotoFactura = document.getElementById('input-foto-factura');
-    const facturaIva = document.getElementById('factura-iva');
-    const facturaMargen = document.getElementById('factura-margen');
     const btnProcesarOCR = document.getElementById('btn-procesar-ocr');
     const estadoOCR = document.getElementById('estado-ocr');
 
@@ -141,7 +143,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const prodStock = document.getElementById('prod-stock');
     const prodVencimiento = document.getElementById('prod-vencimiento');
     const prodMinimo = document.getElementById('prod-minimo');
-    const prodPrecio = document.getElementById('prod-precio');
+    const prodCosto = document.getElementById('prod-costo');
+    const prodIva = document.getElementById('prod-iva');
+    const prodMargen = document.getElementById('prod-margen');
     const tituloFormProducto = document.getElementById('titulo-form-producto');
 
     const inputBuscar = document.getElementById('input-buscar');
@@ -215,7 +219,6 @@ document.addEventListener('DOMContentLoaded', () => {
             mapaRegistro.on('click', (e) => {
                 const lat = e.latlng.lat;
                 const lng = e.latlng.lng;
-
                 regLat.value = lat;
                 regLng.value = lng;
                 lblCoordSeleccionada.innerHTML = `✅ Ubicación fijada: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`;
@@ -236,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const usuarioInput = document.getElementById('reg-usuario').value;
         const nuevoUsuarioKey = usuarioInput.trim().toLowerCase();
-        
         const nuevoDepto = regDepartamento.value;
         const nuevaCiudad = regCiudad.value;
         const nuevaDireccion = document.getElementById('reg-direccion').value.trim();
@@ -305,7 +307,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mensajeAuth.classList.add('hidden');
     });
 
-    // MÓDULO OCR: LECTURA DE FACTURA POR FOTO
+    // MÓDULO OCR: LECTURA AUTOMÁTICA DE FACTURA
     btnProcesarOCR.addEventListener('click', async () => {
         const archivo = inputFotoFactura.files[0];
         if (!archivo) {
@@ -313,10 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const pctIVA = parseFloat(facturaIva.value) / 100;
-        const pctMargen = parseFloat(facturaMargen.value) / 100;
-
-        estadoOCR.textContent = "⏳ Analizando foto de la factura con OCR... Por favor espera unos segundos.";
+        estadoOCR.textContent = "⏳ Analizando foto de la factura automáticamente... Por favor espera.";
 
         try {
             const result = await Tesseract.recognize(archivo, 'spa', {
@@ -328,50 +327,36 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const textoExtraido = result.data.text;
-            console.log("Texto extraído de la factura:", textoExtraido);
-
-            // Algoritmo de extracción de líneas de factura
             const lineas = textoExtraido.split('\n');
             let productosIngresados = 0;
             const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
 
             lineas.forEach(linea => {
-                // Busca patrones de precio (ej: "Hamburguesa 10 15000" o "Queso 5000")
                 const numeros = linea.match(/\d+/g);
                 if (numeros && numeros.length >= 1) {
                     const costoBase = parseInt(numeros[numeros.length - 1]);
                     const cantidad = numeros.length >= 2 ? parseInt(numeros[numeros.length - 2]) : 10;
-                    
-                    // Limpia la descripción del producto eliminando los números
                     let descripcion = linea.replace(/[0-9]/g, '').trim();
+
                     if (descripcion.length > 3 && costoBase > 1000) {
-                        
-                        // Cálculo del precio final de venta al público
-                        const precioConIVA = costoBase * (1 + pctIVA);
-                        const precioFinalVenta = Math.round(precioConIVA * (1 + pctMargen));
+                        const ivaProd = 19; // IVA por defecto configurable
+                        const margenProd = 30; // Margen por defecto configurable
+                        const precioFinalVenta = Math.round((costoBase * (1 + ivaProd / 100)) * (1 + margenProd / 100));
+                        const fechaDefecto = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                        const refAutogenerada = "REF-" + Math.floor(1000 + Math.random() * 9000);
 
-                        const fechaDefecto = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
-
-                        // Buscar si el producto ya existe en la bodega
-                        const prodExiste = usrData.inventario.find(p => p.nombre.toLowerCase() === descripcion.toLowerCase());
-
-                        if (prodExiste) {
-                            prodExiste.stock += cantidad;
-                            prodExiste.costoCompra = costoBase;
-                            prodExiste.precio = precioFinalVenta;
-                            prodExiste.lotes.push({ idLote: "lote_" + Date.now(), cantidad: cantidad, fechaVencimiento: fechaDefecto });
-                        } else {
-                            usrData.inventario.unshift({
-                                id: "prod_" + Date.now() + Math.random().toString(36).substring(2, 5),
-                                codigo: "FAC-" + Math.floor(100 + Math.random() * 900),
-                                nombre: descripcion,
-                                stock: cantidad,
-                                minimo: 5,
-                                costoCompra: costoBase,
-                                precio: precioFinalVenta,
-                                lotes: [{ idLote: "lote_" + Date.now(), cantidad: cantidad, fechaVencimiento: fechaDefecto }]
-                            });
-                        }
+                        usrData.inventario.unshift({
+                            id: "prod_" + Date.now() + Math.random().toString(36).substring(2, 5),
+                            codigo: refAutogenerada,
+                            nombre: descripcion,
+                            stock: cantidad,
+                            minimo: 5,
+                            costoCompra: costoBase,
+                            ivaPorcentaje: ivaProd,
+                            margenPorcentaje: margenProd,
+                            precio: precioFinalVenta,
+                            lotes: [{ idLote: "lote_" + Date.now(), cantidad: cantidad, fechaVencimiento: fechaDefecto }]
+                        });
                         productosIngresados++;
                     }
                 }
@@ -380,39 +365,40 @@ document.addEventListener('DOMContentLoaded', () => {
             if (productosIngresados > 0) {
                 guardarEnStorage();
                 renderizarTabla();
-                estadoOCR.innerHTML = `✅ <strong>¡Éxito!</strong> Se detectaron e integraron <strong>${productosIngresados} productos</strong> de la factura al stock. Precios de venta publicados en el mapa.`;
+                estadoOCR.innerHTML = `✅ <strong>¡Éxito!</strong> Se detectaron y llenaron automáticamente <strong>${productosIngresados} productos</strong> de la factura. Referencias asignadas y precios calculados.`;
             } else {
-                // Muestra demostración si la foto es poco clara
-                estadoOCR.innerHTML = `⚠️ No se detectaron líneas claras. Cargando plantilla de demostración de factura...`;
-                ingresarFacturaDemostracion(usrData, pctIVA, pctMargen);
+                estadoOCR.innerHTML = `⚠️ No se leyeron líneas claras. Cargando factura de demostración automática...`;
+                ingresarFacturaDemostracion(usrData);
             }
 
         } catch (err) {
             console.error(err);
-            estadoOCR.innerHTML = `⚠️ Ocurrió un error al procesar la imagen. Se integrará una demostración automática.`;
-            ingresarFacturaDemostracion(baseDeDatosUsuarios[usuarioSesionActiva], pctIVA, pctMargen);
+            estadoOCR.innerHTML = `⚠️ Error al escanear. Cargando demostración automática...`;
+            ingresarFacturaDemostracion(baseDeDatosUsuarios[usuarioSesionActiva]);
         }
     });
 
-    function ingresarFacturaDemostracion(usrData, pctIVA, pctMargen) {
+    function ingresarFacturaDemostracion(usrData) {
         const demoProductos = [
-            { nombre: "Carne para Hamburguesa 120g", cantidad: 50, costo: 4500 },
-            { nombre: "Queso Cheddar Tajado x10", cantidad: 30, costo: 8200 },
-            { nombre: "Pan Hamburguesa Brioche x6", cantidad: 25, costo: 6000 }
+            { nombre: "Carne para Hamburguesa 120g", cantidad: 50, costo: 4500, iva: 19, margen: 30 },
+            { nombre: "Queso Cheddar Tajado x10", cantidad: 30, costo: 8200, iva: 19, margen: 25 },
+            { nombre: "Pan Hamburguesa Brioche x6", cantidad: 25, costo: 6000, iva: 5, margen: 35 }
         ];
 
         demoProductos.forEach(p => {
-            const precioConIVA = p.costo * (1 + pctIVA);
-            const precioFinal = Math.round(precioConIVA * (1 + pctMargen));
-            const fechaVenc = new Date(Date.now() + 45*24*60*60*1000).toISOString().split('T')[0];
+            const precioFinal = Math.round((p.costo * (1 + p.iva / 100)) * (1 + p.margen / 100));
+            const fechaVenc = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const refCode = "REF-" + Math.floor(1000 + Math.random() * 9000);
 
             usrData.inventario.unshift({
                 id: "prod_" + Date.now() + Math.random().toString(36).substring(2, 4),
-                codigo: "FAC-" + Math.floor(100 + Math.random() * 900),
+                codigo: refCode,
                 nombre: p.nombre,
                 stock: p.cantidad,
                 minimo: 5,
                 costoCompra: p.costo,
+                ivaPorcentaje: p.iva,
+                margenPorcentaje: p.margen,
                 precio: precioFinal,
                 lotes: [{ idLote: "lote_" + Date.now(), cantidad: p.cantidad, fechaVencimiento: fechaVenc }]
             });
@@ -420,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         guardarEnStorage();
         renderizarTabla();
-        estadoOCR.innerHTML = `✅ <strong>Factura procesada:</strong> 3 productos añadidos al stock con precio de venta calculado.`;
+        estadoOCR.innerHTML = `✅ <strong>Factura procesada automáticamente:</strong> 3 productos integrados con sus referencias, IVA y márgenes independientes.`;
     }
 
     function iniciarApp() {
@@ -493,7 +479,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </strong><br>
                         <p style="margin:4px 0; font-size:0.85rem;">Ubicación: <strong>${ciudad}, ${depto}</strong></p>
                         <p style="margin:4px 0; font-size:0.85rem;">Ref: ${direccion}</p>
-                        <p style="margin:0; font-size:0.85rem; font-weight:bold; color:#16a34a;">Productos Registrados: ${totalProd}</p>
+                        <p style="margin:0; font-size:0.85rem; font-weight:bold; color:#16a34a;">Productos: ${totalProd}</p>
                     </div>
                 `);
 
@@ -522,7 +508,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function actualizarComparacionPrecios() {
         const productoSeleccionado = selectProductoComparar.value;
         if (!productoSeleccionado) {
-            resultadoComparacion.innerHTML = `<p style="color:#6b7280;">No hay productos disponibles para comparar.</p>`;
+            resultadoComparacion.innerHTML = `<p style="color:#6b7280;">No hay productos para comparar.</p>`;
             return;
         }
 
@@ -532,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <tr>
                         <th>Empresa</th>
                         <th>Ubicación</th>
-                        <th>Precio Venta Público (IVA incl.)</th>
+                        <th>Precio Venta Público</th>
                         <th>Stock</th>
                     </tr>
                 </thead>
@@ -577,7 +563,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (encontrado) {
             comparativaHTML = `
                 <div style="background:#f0fdf4; border:1px solid #86efac; padding:10px; border-radius:8px; margin-bottom:12px; color:#15803d; font-size:0.9rem;">
-                    💡 <strong>Mejor Precio de Venta Público:</strong> Ofrecido por <strong>${mejorSede}</strong> a solo <strong>$ ${mejorPrecio.toLocaleString()} COP</strong>.
+                    💡 <strong>Mejor Precio Público:</strong> Ofrecido por <strong>${mejorSede}</strong> a solo <strong>$ ${mejorPrecio.toLocaleString()} COP</strong>.
                 </div>
             ` + comparativaHTML;
         } else {
@@ -608,16 +594,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // REGISTRO MANUAL O EDICIÓN DIRECTA
+    // REGISTRO O EDICIÓN MANUAL DE PRODUCTO
     formProducto.addEventListener('submit', (e) => {
         e.preventDefault();
         const id = prodId.value;
-        const codigo = prodCodigo.value.trim();
+        const codigo = prodCodigo.value.trim() || ("REF-" + Math.floor(1000 + Math.random() * 9000));
         const nombre = prodNombre.value.trim();
         const stockNum = parseInt(prodStock.value);
         const fechaVenc = prodVencimiento.value;
         const minNum = parseInt(prodMinimo.value);
-        const precioNum = parseInt(prodPrecio.value);
+        const costoNum = parseInt(prodCosto.value);
+        const ivaNum = parseFloat(prodIva.value);
+        const margenNum = parseFloat(prodMargen.value);
+
+        // Cálculo del precio final con IVA y Margen independientes
+        const precioFinal = Math.round((costoNum * (1 + ivaNum / 100)) * (1 + margenNum / 100));
 
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
 
@@ -627,7 +618,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 usrData.inventario[prodIndex].codigo = codigo;
                 usrData.inventario[prodIndex].nombre = nombre;
                 usrData.inventario[prodIndex].minimo = minNum;
-                usrData.inventario[prodIndex].precio = precioNum;
+                usrData.inventario[prodIndex].costoCompra = costoNum;
+                usrData.inventario[prodIndex].ivaPorcentaje = ivaNum;
+                usrData.inventario[prodIndex].margenPorcentaje = margenNum;
+                usrData.inventario[prodIndex].precio = precioFinal;
             }
         } else {
             const nuevoProd = {
@@ -636,8 +630,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 nombre: nombre,
                 stock: stockNum,
                 minimo: minNum,
-                costoCompra: Math.round(precioNum * 0.7),
-                precio: precioNum,
+                costoCompra: costoNum,
+                ivaPorcentaje: ivaNum,
+                margenPorcentaje: margenNum,
+                precio: precioFinal,
                 lotes: [{ idLote: "lote_" + Date.now(), cantidad: stockNum, fechaVencimiento: fechaVenc }]
             };
             usrData.inventario.unshift(nuevoProd);
@@ -653,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formProducto.reset();
         prodStock.disabled = false;
         prodVencimiento.disabled = false;
-        tituloFormProducto.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Registro Manual / Edición Directa de Producto`;
+        tituloFormProducto.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Gestión de Producto (Costo, IVA y Margen Independientes)`;
     }
 
     function renderizarTabla() {
@@ -665,7 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const productosFiltrados = usrData.inventario.filter(p => p.nombre.toLowerCase().includes(filtro) || p.codigo.includes(filtro));
 
         if (productosFiltrados.length === 0) {
-            tablaBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:15px;">No hay productos registrados en el stock. Carga una factura arriba.</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:15px;">No hay productos registrados. Carga una factura arriba o regístralos manualmente.</td></tr>`;
             return;
         }
 
@@ -676,14 +672,15 @@ document.addEventListener('DOMContentLoaded', () => {
             let lotesDetalleHTML = prod.lotes.map(l => `<div class="detalle-lotes">• Cant: <strong>${l.cantidad}</strong> | Vence: ${l.fechaVencimiento}</div>`).join('');
 
             const costoTexto = prod.costoCompra ? `$ ${prod.costoCompra.toLocaleString()} COP` : 'N/A';
+            const ivaMargenTexto = `IVA: ${prod.ivaPorcentaje || 19}% | Margen: ${prod.margenPorcentaje || 30}%`;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><strong>${prod.nombre}</strong><br><small>${prod.codigo}</small></td>
+                <td><strong>${prod.nombre}</strong><br><small style="color:#2563eb;">Ref: ${prod.codigo}</small></td>
                 <td>${prod.stock} un.</td>
                 <td style="color:#4b5563;">${costoTexto}</td>
+                <td style="font-size:0.8rem; color:#6b7280;">${ivaMargenTexto}</td>
                 <td style="font-weight:bold; color:#16a34a;">$ ${prod.precio.toLocaleString()} COP</td>
-                <td>${estadoHTML}${lotesDetalleHTML}</td>
                 <td>
                     <button class="btn-in" onclick="abrirModalMovimiento('${prod.id}', 'ENTRADA')"><i class="fa-solid fa-plus"></i></button>
                     <button class="btn-out" onclick="abrirModalMovimiento('${prod.id}', 'SALIDA')"><i class="fa-solid fa-minus"></i></button>
@@ -705,10 +702,12 @@ document.addEventListener('DOMContentLoaded', () => {
         prodNombre.value = prod.nombre;
         prodStock.value = prod.stock;
         prodMinimo.value = prod.minimo;
-        prodPrecio.value = prod.precio;
+        prodCosto.value = prod.costoCompra || 0;
+        prodIva.value = prod.ivaPorcentaje || 19;
+        prodMargen.value = prod.margenPorcentaje || 30;
         prodStock.disabled = true;
         prodVencimiento.disabled = true;
-        tituloFormProducto.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Modificar Producto`;
+        tituloFormProducto.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Modificar Producto e Impuestos`;
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -716,13 +715,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         const prod = usrData.inventario.find(p => p.id === id);
         if (!prod) return;
-        movProdId.value = prod.id;
-        movTipo.value = tipo;
-        movProdNombre.value = prod.nombre;
-        modalMovimiento.classList.remove('hidden');
+        // Asignar al modal
+        document.getElementById('mov-prod-id').value = prod.id;
+        document.getElementById('mov-tipo').value = tipo;
+        document.getElementById('mov-prod-nombre').value = prod.nombre;
+        document.getElementById('modal-movimiento').classList.remove('hidden');
     };
-
-    btnCerrarModal.addEventListener('click', () => modalMovimiento.classList.add('hidden'));
 
     if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
         iniciarApp();
