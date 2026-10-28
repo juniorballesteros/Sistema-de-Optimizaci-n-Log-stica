@@ -91,6 +91,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let modoOnline = true;
     let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v2026')) || [];
     let productosDetectadosTemporal = [];
+    let logoBase64Registro = "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
+    let logoBase64Perfil = "";
 
     let mapaPrincipal = null;
     let mapaRegistro = null;
@@ -110,6 +112,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const regLat = document.getElementById('reg-lat');
     const regLng = document.getElementById('reg-lng');
     const lblCoordSeleccionada = document.getElementById('lbl-coord-seleccionada');
+    const regLogoFile = document.getElementById('reg-logo-file');
+    const previewRegLogo = document.getElementById('preview-reg-logo');
 
     const nombreUsuarioActivo = document.getElementById('nombre-usuario-activo');
     const lblCiudadUsuario = document.getElementById('lbl-ciudad-usuario');
@@ -124,7 +128,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const perfilDepartamento = document.getElementById('perfil-departamento');
     const perfilCiudad = document.getElementById('perfil-ciudad');
     const perfilDireccion = document.getElementById('perfil-direccion');
-    const perfilLogo = document.getElementById('perfil-logo');
+    const perfilLogoFile = document.getElementById('perfil-logo-file');
+    const previewPerfilLogo = document.getElementById('preview-perfil-logo');
 
     const btnVistaMapa = document.getElementById('btn-vista-mapa');
     const btnVistaComparador = document.getElementById('btn-vista-comparador');
@@ -169,6 +174,38 @@ document.addEventListener('DOMContentLoaded', () => {
         mensajeAuth.className = tipo;
         mensajeAuth.classList.remove('hidden');
     }
+
+    // Convertir imagen seleccionada a Base64
+    function convertirImagenABase64(fileInput, callback) {
+        const file = fileInput.files[0];
+        if (!file) {
+            callback(null);
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            callback(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+
+    regLogoFile.addEventListener('change', () => {
+        convertirImagenABase64(regLogoFile, (base64) => {
+            if (base64) {
+                logoBase64Registro = base64;
+                previewRegLogo.innerHTML = `<img src="${base64}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #16a34a;"> <span style="font-size:0.75rem; color:#16a34a;">Logo listo</span>`;
+            }
+        });
+    });
+
+    perfilLogoFile.addEventListener('change', () => {
+        convertirImagenABase64(perfilLogoFile, (base64) => {
+            if (base64) {
+                logoBase64Perfil = base64;
+                previewPerfilLogo.innerHTML = `<img src="${base64}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #16a34a;"> <span style="font-size:0.75rem; color:#16a34a;">Nuevo logo listo</span>`;
+            }
+        });
+    });
 
     function configurarSelectores(selectDepto, selectMun) {
         selectDepto.addEventListener('change', () => {
@@ -250,7 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const nuevoDepto = regDepartamento.value;
         const nuevaCiudad = regCiudad.value;
         const nuevaDireccion = document.getElementById('reg-direccion').value.trim();
-        const nuevoLogo = document.getElementById('reg-logo').value.trim() || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
         const nuevaPassword = document.getElementById('reg-password').value.trim();
         const lat = parseFloat(regLat.value);
         const lng = parseFloat(regLng.value);
@@ -273,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
             departamento: nuevoDepto,
             ciudad: nuevaCiudad,
             direccion: nuevaDireccion,
-            logo: nuevoLogo,
+            logo: logoBase64Registro,
             lat: lat,
             lng: lng,
             inventario: [],
@@ -283,6 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
         guardarEnStorage();
         mostrarMensaje("¡Empresa y perfil registrados con éxito!", "exito");
         formRegister.reset();
+        previewRegLogo.innerHTML = '';
+        logoBase64Registro = "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
 
         setTimeout(() => {
             tabLogin.click();
@@ -313,6 +351,46 @@ document.addEventListener('DOMContentLoaded', () => {
         pantallaLogin.classList.remove('hidden');
         formLogin.reset();
         mensajeAuth.classList.add('hidden');
+    });
+
+    // GESTIÓN DE PERFIL (MODAL)
+    btnEditarPerfil.addEventListener('click', () => {
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        if (!usrData) return;
+        perfilDepartamento.value = usrData.departamento || "Cundinamarca";
+        // Disparar evento para cargar municipios
+        perfilDepartamento.dispatchEvent(new Event('change'));
+        setTimeout(() => {
+            perfilCiudad.value = usrData.ciudad || "";
+        }, 50);
+        perfilDireccion.value = usrData.direccion || "";
+        logoBase64Perfil = usrData.logo || "";
+        previewPerfilLogo.innerHTML = `<img src="${logoBase64Perfil}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #2563eb;">`;
+        modalPerfil.classList.remove('hidden');
+    });
+
+    btnCerrarPerfil.addEventListener('click', () => modalPerfil.classList.add('hidden'));
+
+    formEditarPerfil.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        usrData.departamento = perfilDepartamento.value;
+        usrData.ciudad = perfilCiudad.value;
+        usrData.direccion = perfilDireccion.value.trim();
+        if (logoBase64Perfil) {
+            usrData.logo = logoBase64Perfil;
+        }
+
+        const coords = coordenadasBaseSedes[usrData.ciudad];
+        if (coords) {
+            usrData.lat = coords.lat;
+            usrData.lng = coords.lng;
+        }
+
+        guardarEnStorage();
+        modalPerfil.classList.add('hidden');
+        lblCiudadUsuario.textContent = `${usrData.ciudad}, ${usrData.departamento}`;
+        alert("✅ Perfil corporativo actualizado con éxito.");
     });
 
     // MÓDULO OCR: ESCANEO Y APERTURA DE VENTANA DE PRE-REVISIÓN
