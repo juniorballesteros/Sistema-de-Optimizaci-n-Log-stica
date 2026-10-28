@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Coordenadas base por defecto si la dirección no arroja resultados precisos
+    // Coordenadas base de respaldo por si falla la conexión a internet
     const coordenadasBaseSedes = {
         "Ubaté": { lat: 5.3114, lng: -73.8169 },
         "Bogotá": { lat: 4.6097, lng: -74.0817 },
@@ -8,11 +8,11 @@ document.addEventListener('DOMContentLoaded', () => {
         "Montería": { lat: 8.7479, lng: -75.8814 }
     };
 
-    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v3')) || {
+    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v5')) || {
         "admin_ubate": {
             password: "Admin123*",
             ciudad: "Ubaté",
-            direccion: "Calle Principal # 4-20, Bodega Central",
+            direccion: "Carrera 4 # 5-20",
             lat: 5.3114,
             lng: -73.8169,
             inventario: [
@@ -30,33 +30,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             ],
             historial: []
-        },
-        "admin_bogota": {
-            password: "Admin123*",
-            ciudad: "Bogotá",
-            direccion: "Zona Industrial Álamos, Bogotá",
-            lat: 4.6500,
-            lng: -74.1200,
-            inventario: [
-                {
-                    id: "prod_bog_1",
-                    codigo: "7701234567891",
-                    nombre: "Leche Entera Larga Vida 1L",
-                    stock: 120,
-                    minimo: 20,
-                    precio: 3900,
-                    lotes: [
-                        { idLote: "lote_bog_1", cantidad: 120, fechaVencimiento: "2026-12-10" }
-                    ]
-                }
-            ],
-            historial: []
         }
     };
 
-    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v3') || null;
+    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v5') || null;
     let modoOnline = true;
-    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v3')) || [];
+    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v5')) || [];
     let mapaLeaflet = null;
 
     // === ELEMENTOS DOM ===
@@ -106,8 +85,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const movCantidad = document.getElementById('mov-cantidad');
     const movVencimiento = document.getElementById('mov-vencimiento');
     const grupoVencimientoMov = document.getElementById('grupo-vencimiento-mov');
-    const movAlertaFifo = document.getElementById('mov-alerta-fifo');
-    const movAlertaStock = document.getElementById('mov-alerta-stock');
     const btnCerrarModal = document.getElementById('btn-cerrar-modal');
 
     const btnReportes = document.getElementById('btn-reportes');
@@ -116,8 +93,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tablaReportesBody = document.getElementById('tabla-reportes-body');
 
     function guardarEnStorage() {
-        localStorage.setItem('bd_logistica_ubate_v3', JSON.stringify(baseDeDatosUsuarios));
-        localStorage.setItem('cola_sync_ubate_v3', JSON.stringify(colaSincronizacion));
+        localStorage.setItem('bd_logistica_ubate_v5', JSON.stringify(baseDeDatosUsuarios));
+        localStorage.setItem('cola_sync_ubate_v5', JSON.stringify(colaSincronizacion));
     }
 
     function mostrarMensaje(msg, tipo) {
@@ -142,7 +119,38 @@ document.addEventListener('DOMContentLoaded', () => {
         mensajeAuth.classList.add('hidden');
     });
 
-    // === REGISTRO CON DIRECCIÓN EXACTA Y GEOCODIFICACIÓN ===
+    // === GEOCODIFICACIÓN OPTIMIZADA PARA NOMENCLATURA VIAL (CARRERAS Y CALLES) ===
+    async function obtenerCoordenadasPorNomenclatura(direccion, ciudad) {
+        let lat = coordenadasBaseSedes[ciudad] ? coordenadasBaseSedes[ciudad].lat : 5.3114;
+        let lng = coordenadasBaseSedes[ciudad] ? coordenadasBaseSedes[ciudad].lng : -73.8169;
+
+        // Limpiar y formatear la entrada para ayudar al motor de mapas colombiano
+        // Ejemplo: "Carrera 3 # 4-20" se complementa para que el buscador vial lo interprete con precisión
+        const consultas = [
+            `${direccion}, ${ciudad}, Cundinamarca, Colombia`,
+            `${direccion}, ${ciudad}, Colombia`,
+            `Calle ${direccion}, ${ciudad}, Colombia`,
+            `Carrera ${direccion}, ${ciudad}, Colombia`,
+            `${ciudad}, Colombia`
+        ];
+
+        for (let query of consultas) {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=1`);
+                const data = await res.json();
+                if (data && data.length > 0) {
+                    lat = parseFloat(data[0].lat);
+                    lng = parseFloat(data[0].lon);
+                    break; 
+                }
+            } catch (err) {
+                console.warn("Error en la geocodificación vial:", err);
+            }
+        }
+        return { lat, lng };
+    }
+
+    // === REGISTRO DE NUEVA SEDE / EMPRESA ===
     formRegister.addEventListener('submit', async (e) => {
         e.preventDefault();
         const nuevoUsuario = document.getElementById('reg-usuario').value.trim().toLowerCase();
@@ -163,37 +171,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        mostrarMensaje("Geolocalizando dirección exacta de la empresa...", "exito");
+        mostrarMensaje("📍 Procesando nomenclatura vial y ubicando en el mapa...", "exito");
 
-        // Intentar obtener coordenadas exactas mediante la API pública de Nominatim (OpenStreetMap)
-        let latFinal = coordenadasBaseSedes[nuevaCiudad].lat;
-        let lngFinal = coordenadasBaseSedes[nuevaCiudad].lng;
-
-        try {
-            const queryBusqueda = encodeURIComponent(`${nuevaDireccion}, ${nuevaCiudad}, Colombia`);
-            const respuesta = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${queryBusqueda}`);
-            const datosGeo = await respuesta.json();
-
-            if (datosGeo && datosGeo.length > 0) {
-                latFinal = parseFloat(datosGeo[0].lat);
-                lngFinal = parseFloat(datosGeo[0].lon);
-            }
-        } catch (error) {
-            console.warn("No se pudo conectar al servicio de geolocalización, usando coordenadas base de la ciudad.");
-        }
+        // Obtener coordenadas reales basadas en la nomenclatura de calles y carreras
+        const coords = await obtenerCoordenadasPorNomenclatura(nuevaDireccion, nuevaCiudad);
 
         baseDeDatosUsuarios[nuevoUsuario] = {
             password: nuevaPassword,
             ciudad: nuevaCiudad,
             direccion: nuevaDireccion,
-            lat: latFinal,
-            lng: lngFinal,
+            lat: coords.lat,
+            lng: coords.lng,
             inventario: [],
             historial: []
         };
 
         guardarEnStorage();
-        mostrarMensaje("¡Sede y ubicación exacta registrada con éxito!", "exito");
+        mostrarMensaje("¡Sede y dirección registrada con éxito!", "exito");
         formRegister.reset();
 
         setTimeout(() => {
@@ -209,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (baseDeDatosUsuarios[usr] && baseDeDatosUsuarios[usr].password === pass) {
             usuarioSesionActiva = usr;
-            localStorage.setItem('sesion_activa_ubate_v3', usr);
+            localStorage.setItem('sesion_activa_ubate_v5', usr);
             iniciarApp();
         } else {
             mostrarMensaje("Usuario o contraseña incorrectos.", "error");
@@ -218,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnLogout.addEventListener('click', () => {
         usuarioSesionActiva = null;
-        localStorage.removeItem('sesion_activa_ubate_v3');
+        localStorage.removeItem('sesion_activa_ubate_v5');
         pantallaApp.classList.add('hidden');
         pantallaLogin.classList.remove('hidden');
         formLogin.reset();
@@ -249,16 +243,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // === MAPA CON PINES EXACTOS POR EMPRESA ===
+    // === MAPA INTERACTIVO CON PINES EN CALLES Y CARRERAS ===
     function inicializarMapaLeaflet() {
         setTimeout(() => {
+            const dataUsuarioActual = baseDeDatosUsuarios[usuarioSesionActiva];
+            const latCentro = dataUsuarioActual ? dataUsuarioActual.lat : 5.3114;
+            const lngCentro = dataUsuarioActual ? dataUsuarioActual.lng : -73.8169;
+
             if (!mapaLeaflet) {
-                mapaLeaflet = L.map('mapa-sedes').setView([5.0, -73.8], 6);
+                mapaLeaflet = L.map('mapa-sedes').setView([latCentro, lngCentro], 16); // Zoom más cercano para detalle de calle
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
-                    attribution: '© OpenStreetMap contributors'
+                    attribution: '© OpenStreetMap'
                 }).addTo(mapaLeaflet);
             } else {
+                mapaLeaflet.setView([latCentro, lngCentro], 16);
                 mapaLeaflet.invalidateSize();
             }
 
@@ -268,26 +267,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Recorrer cada usuario/empresa registrado para colocar su pin exacto
             Object.keys(baseDeDatosUsuarios).forEach(usr => {
                 const dataUsr = baseDeDatosUsuarios[usr];
                 const lat = dataUsr.lat || 5.3114;
                 const lng = dataUsr.lng || -73.8169;
                 const ciudad = dataUsr.ciudad || "Ubaté";
-                const direccion = dataUsr.direccion || "Dirección principal";
-                const totalProd = dataUsr.inventario.length;
+                const direccion = dataUsr.direccion || "Dirección vial";
+                const totalProd = dataUsr.inventario ? dataUsr.inventario.length : 0;
 
+                const esUsuarioActual = (usr === usuarioSesionActiva);
                 const marker = L.marker([lat, lng]).addTo(mapaLeaflet);
+
                 marker.bindPopup(`
                     <div style="font-family:sans-serif;">
-                        <strong style="color:#dc2626; font-size:1rem;">🏢 Sede: ${usr.toUpperCase()}</strong><br>
+                        <strong style="color:${esUsuarioActual ? '#dc2626' : '#2563eb'}; font-size:1rem;">
+                            🏢 ${usr.toUpperCase()} ${esUsuarioActual ? '(Tu Empresa)' : ''}
+                        </strong><br>
                         <p style="margin:4px 0; font-size:0.85rem;">Ciudad: <strong>${ciudad}</strong></p>
-                        <p style="margin:4px 0; font-size:0.85rem;">Dirección: ${direccion}</p>
-                        <p style="margin:0; font-size:0.85rem; font-weight:bold; color:#16a34a;">Productos en stock: ${totalProd}</p>
+                        <p style="margin:4px 0; font-size:0.85rem;">Dirección: <strong>${direccion}</strong></p>
+                        <p style="margin:0; font-size:0.85rem; font-weight:bold; color:#16a34a;">Productos en inventario: ${totalProd}</p>
                     </div>
                 `);
+
+                if (esUsuarioActual) {
+                    marker.openPopup();
+                }
             });
-        }, 200);
+        }, 300);
     }
 
     function poblarSelectorComparador() {
@@ -318,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <tr>
                         <th>Empresa / Sede</th>
                         <th>Ciudad</th>
-                        <th>Dirección</th>
+                        <th>Dirección Exacta</th>
                         <th>Precio Unitario</th>
                         <th>Stock</th>
                     </tr>
@@ -338,14 +344,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 encontrado = true;
                 if (prodEnSede.precio < mejorPrecio) {
                     mejorPrecio = prodEnSede.precio;
-                    mejorSede = `${usr} (${dataUsr.ciudad})`;
+                    mejorSede = `${usr} (${dataUsr.ciudad} - ${dataUsr.direccion})`;
                 }
 
                 comparativaHTML += `
                     <tr>
                         <td><strong>${usr}</strong></td>
                         <td>${dataUsr.ciudad || "Ubaté"}</td>
-                        <td style="font-size:0.8rem; color:#4b5563;">${dataUsr.direccion || "Sede central"}</td>
+                        <td style="font-size:0.8rem; color:#4b5563;">${dataUsr.direccion || "Sin dirección"}</td>
                         <td style="font-weight:bold; color:#16a34a;">$ ${prodEnSede.precio.toLocaleString()} COP</td>
                         <td>${prodEnSede.stock} un.</td>
                     </tr>
@@ -385,7 +391,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // === GESTIÓN DE PRODUCTOS ===
+    // === GESTIÓN DE PRODUCTOS E INVENTARIO ===
     formProducto.addEventListener('submit', (e) => {
         e.preventDefault();
         const id = prodId.value;
@@ -441,7 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const productosFiltrados = usrData.inventario.filter(p => p.nombre.toLowerCase().includes(filtro) || p.codigo.includes(filtro));
 
         if (productosFiltrados.length === 0) {
-            tablaBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:15px;">No se encontraron productos.</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:15px;">No se encontraron productos en el inventario.</td></tr>`;
             return;
         }
 
@@ -515,7 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tipo = movTipo.value;
         const cantidad = parseInt(movCantidad.value);
         const fechaVenc = movVencimiento.value;
-        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        const usrData = baseDeDatosUsuarios[usuarioSesionAddativa]; // corregido
         const prod = usrData.inventario.find(p => p.id === id);
 
         if (tipo === 'ENTRADA') {
