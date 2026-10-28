@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Coordenadas base de respaldo por si falla la conexión a internet
+    // Coordenadas base por defecto para centrar el mini mapa de registro según la ciudad elegida
     const coordenadasBaseSedes = {
         "Ubaté": { lat: 5.3114, lng: -73.8169 },
         "Bogotá": { lat: 4.6097, lng: -74.0817 },
@@ -8,11 +8,11 @@ document.addEventListener('DOMContentLoaded', () => {
         "Montería": { lat: 8.7479, lng: -75.8814 }
     };
 
-    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v5')) || {
+    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v6')) || {
         "admin_ubate": {
             password: "Admin123*",
             ciudad: "Ubaté",
-            direccion: "Carrera 4 # 5-20",
+            direccion: "Calle Principal # 4-20",
             lat: 5.3114,
             lng: -73.8169,
             inventario: [
@@ -33,10 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v5') || null;
+    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v6') || null;
     let modoOnline = true;
-    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v5')) || [];
-    let mapaLeaflet = null;
+    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v6')) || [];
+    let mapaPrincipal = null;
+    let mapaRegistro = null;
+    let marcadorRegistro = null;
 
     // === ELEMENTOS DOM ===
     const pantallaLogin = document.getElementById('pantalla-login');
@@ -46,6 +48,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const formLogin = document.getElementById('form-login');
     const formRegister = document.getElementById('form-register');
     const mensajeAuth = document.getElementById('mensaje-auth');
+
+    const regCiudad = document.getElementById('reg-ciudad');
+    const regLat = document.getElementById('reg-lat');
+    const regLng = document.getElementById('reg-lng');
+    const lblCoordSeleccionada = document.getElementById('lbl-coord-seleccionada');
 
     const nombreUsuarioActivo = document.getElementById('nombre-usuario-activo');
     const lblCiudadUsuario = document.getElementById('lbl-ciudad-usuario');
@@ -93,8 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tablaReportesBody = document.getElementById('tabla-reportes-body');
 
     function guardarEnStorage() {
-        localStorage.setItem('bd_logistica_ubate_v5', JSON.stringify(baseDeDatosUsuarios));
-        localStorage.setItem('cola_sync_ubate_v5', JSON.stringify(colaSincronizacion));
+        localStorage.setItem('bd_logistica_ubate_v6', JSON.stringify(baseDeDatosUsuarios));
+        localStorage.setItem('cola_sync_ubate_v6', JSON.stringify(colaSincronizacion));
     }
 
     function mostrarMensaje(msg, tipo) {
@@ -117,48 +124,66 @@ document.addEventListener('DOMContentLoaded', () => {
         formRegister.classList.remove('hidden');
         formLogin.classList.add('hidden');
         mensajeAuth.classList.add('hidden');
+
+        // Inicializar mini mapa interactivo al abrir la pestaña de registro
+        setTimeout(() => {
+            inicializarMapaRegistro();
+        }, 300);
     });
 
-    // === GEOCODIFICACIÓN OPTIMIZADA PARA NOMENCLATURA VIAL (CARRERAS Y CALLES) ===
-    async function obtenerCoordenadasPorNomenclatura(direccion, ciudad) {
-        let lat = coordenadasBaseSedes[ciudad] ? coordenadasBaseSedes[ciudad].lat : 5.3114;
-        let lng = coordenadasBaseSedes[ciudad] ? coordenadasBaseSedes[ciudad].lng : -73.8169;
+    // === MINI MAPA INTERACTIVO PARA SELECCIONAR UBICACIÓN EN REGISTRO ===
+    function inicializarMapaRegistro() {
+        const ciudadSel = regCiudad.value;
+        const coordsBase = coordenadasBaseSedes[ciudadSel] || { lat: 5.3114, lng: -73.8169 };
 
-        // Limpiar y formatear la entrada para ayudar al motor de mapas colombiano
-        // Ejemplo: "Carrera 3 # 4-20" se complementa para que el buscador vial lo interprete con precisión
-        const consultas = [
-            `${direccion}, ${ciudad}, Cundinamarca, Colombia`,
-            `${direccion}, ${ciudad}, Colombia`,
-            `Calle ${direccion}, ${ciudad}, Colombia`,
-            `Carrera ${direccion}, ${ciudad}, Colombia`,
-            `${ciudad}, Colombia`
-        ];
+        if (!mapaRegistro) {
+            mapaRegistro = L.map('mapa-registro').setView([coordsBase.lat, coordsBase.lng], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(mapaRegistro);
 
-        for (let query of consultas) {
-            try {
-                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=1`);
-                const data = await res.json();
-                if (data && data.length > 0) {
-                    lat = parseFloat(data[0].lat);
-                    lng = parseFloat(data[0].lon);
-                    break; 
+            // Evento click en el mapa de registro para fijar el marcador exacto
+            mapaRegistro.on('click', (e) => {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+
+                regLat.value = lat;
+                regLng.value = lng;
+                lblCoordSeleccionada.innerHTML = `✅ Ubicación fijada: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`;
+
+                if (marcadorRegistro) {
+                    marcadorRegistro.setLatLng([lat, lng]);
+                } else {
+                    marcadorRegistro = L.marker([lat, lng], { draggable: true }).addTo(mapaRegistro);
                 }
-            } catch (err) {
-                console.warn("Error en la geocodificación vial:", err);
-            }
+            });
+        } else {
+            mapaRegistro.setView([coordsBase.lat, coordsBase.lng], 14);
+            mapaRegistro.invalidateSize();
         }
-        return { lat, lng };
     }
 
-    // === REGISTRO DE NUEVA SEDE / EMPRESA ===
-    formRegister.addEventListener('submit', async (e) => {
+    regCiudad.addEventListener('change', () => {
+        inicializarMapaRegistro();
+    });
+
+    // === REGISTRO DE NUEVA SEDE CON COORDENADAS EXACTAS DEL MAPA ===
+    formRegister.addEventListener('submit', (e) => {
         e.preventDefault();
         const nuevoUsuario = document.getElementById('reg-usuario').value.trim().toLowerCase();
-        const nuevaCiudad = document.getElementById('reg-ciudad').value;
+        const nuevaCiudad = regCiudad.value;
         const nuevaDireccion = document.getElementById('reg-direccion').value.trim();
         const nuevaPassword = document.getElementById('reg-password').value.trim();
+        const lat = parseFloat(regLat.value);
+        const lng = parseFloat(regLng.value);
 
         if (!nuevoUsuario || !nuevaPassword || !nuevaDireccion) return;
+
+        if (isNaN(lat) || isNaN(lng)) {
+            alert("⚠️ Por favor haz clic en el mapa de registro para seleccionar la ubicación exacta de tu empresa.");
+            return;
+        }
 
         if (baseDeDatosUsuarios[nuevoUsuario]) {
             mostrarMensaje("El nombre de usuario ya existe. Elige otro.", "error");
@@ -171,24 +196,25 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        mostrarMensaje("📍 Procesando nomenclatura vial y ubicando en el mapa...", "exito");
-
-        // Obtener coordenadas reales basadas en la nomenclatura de calles y carreras
-        const coords = await obtenerCoordenadasPorNomenclatura(nuevaDireccion, nuevaCiudad);
-
         baseDeDatosUsuarios[nuevoUsuario] = {
             password: nuevaPassword,
             ciudad: nuevaCiudad,
             direccion: nuevaDireccion,
-            lat: coords.lat,
-            lng: coords.lng,
+            lat: lat,
+            lng: lng,
             inventario: [],
             historial: []
         };
 
         guardarEnStorage();
-        mostrarMensaje("¡Sede y dirección registrada con éxito!", "exito");
+        mostrarMensaje("¡Sede y ubicación exacta registrada con éxito!", "exito");
         formRegister.reset();
+        regLat.value = '';
+        regLng.value = '';
+        if (marcadorRegistro) {
+            mapaRegistro.removeLayer(marcadorRegistro);
+            marcadorRegistro = null;
+        }
 
         setTimeout(() => {
             tabLogin.click();
@@ -203,7 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (baseDeDatosUsuarios[usr] && baseDeDatosUsuarios[usr].password === pass) {
             usuarioSesionActiva = usr;
-            localStorage.setItem('sesion_activa_ubate_v5', usr);
+            localStorage.setItem('sesion_activa_ubate_v6', usr);
             iniciarApp();
         } else {
             mostrarMensaje("Usuario o contraseña incorrectos.", "error");
@@ -212,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnLogout.addEventListener('click', () => {
         usuarioSesionActiva = null;
-        localStorage.removeItem('sesion_activa_ubate_v5');
+        localStorage.removeItem('sesion_activa_ubate_v6');
         pantallaApp.classList.add('hidden');
         pantallaLogin.classList.remove('hidden');
         formLogin.reset();
@@ -231,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnVistaMapa.addEventListener('click', () => {
         seccionMapa.classList.toggle('hidden');
         if (!seccionMapa.classList.contains('hidden')) {
-            inicializarMapaLeaflet();
+            inicializarMapaPrincipal();
         }
     });
 
@@ -243,40 +269,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // === MAPA INTERACTIVO CON PINES EN CALLES Y CARRERAS ===
-    function inicializarMapaLeaflet() {
+    // === MAPA GENERAL DE TODAS LAS EMPRESAS REGISTRADAS ===
+    function inicializarMapaPrincipal() {
         setTimeout(() => {
             const dataUsuarioActual = baseDeDatosUsuarios[usuarioSesionActiva];
             const latCentro = dataUsuarioActual ? dataUsuarioActual.lat : 5.3114;
             const lngCentro = dataUsuarioActual ? dataUsuarioActual.lng : -73.8169;
 
-            if (!mapaLeaflet) {
-                mapaLeaflet = L.map('mapa-sedes').setView([latCentro, lngCentro], 16); // Zoom más cercano para detalle de calle
+            if (!mapaPrincipal) {
+                mapaPrincipal = L.map('mapa-sedes').setView([latCentro, lngCentro], 14);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: '© OpenStreetMap'
-                }).addTo(mapaLeaflet);
+                }).addTo(mapaPrincipal);
             } else {
-                mapaLeaflet.setView([latCentro, lngCentro], 16);
-                mapaLeaflet.invalidateSize();
+                mapaPrincipal.setView([latCentro, lngCentro], 14);
+                mapaPrincipal.invalidateSize();
             }
 
-            mapaLeaflet.eachLayer((layer) => {
+            mapaPrincipal.eachLayer((layer) => {
                 if (layer instanceof L.Marker) {
-                    mapaLeaflet.removeLayer(layer);
+                    mapaPrincipal.removeLayer(layer);
                 }
             });
 
+            // Dibujar los pines exactos de cada una de las empresas registradas
             Object.keys(baseDeDatosUsuarios).forEach(usr => {
                 const dataUsr = baseDeDatosUsuarios[usr];
                 const lat = dataUsr.lat || 5.3114;
                 const lng = dataUsr.lng || -73.8169;
                 const ciudad = dataUsr.ciudad || "Ubaté";
-                const direccion = dataUsr.direccion || "Dirección vial";
+                const direccion = dataUsr.direccion || "Ubicación sede";
                 const totalProd = dataUsr.inventario ? dataUsr.inventario.length : 0;
 
                 const esUsuarioActual = (usr === usuarioSesionActiva);
-                const marker = L.marker([lat, lng]).addTo(mapaLeaflet);
+                const marker = L.marker([lat, lng]).addTo(mapaPrincipal);
 
                 marker.bindPopup(`
                     <div style="font-family:sans-serif;">
@@ -284,8 +311,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             🏢 ${usr.toUpperCase()} ${esUsuarioActual ? '(Tu Empresa)' : ''}
                         </strong><br>
                         <p style="margin:4px 0; font-size:0.85rem;">Ciudad: <strong>${ciudad}</strong></p>
-                        <p style="margin:4px 0; font-size:0.85rem;">Dirección: <strong>${direccion}</strong></p>
-                        <p style="margin:0; font-size:0.85rem; font-weight:bold; color:#16a34a;">Productos en inventario: ${totalProd}</p>
+                        <p style="margin:4px 0; font-size:0.85rem;">Referencia: <strong>${direccion}</strong></p>
+                        <p style="margin:0; font-size:0.85rem; font-weight:bold; color:#16a34a;">Productos en stock: ${totalProd}</p>
                     </div>
                 `);
 
@@ -324,7 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <tr>
                         <th>Empresa / Sede</th>
                         <th>Ciudad</th>
-                        <th>Dirección Exacta</th>
+                        <th>Referencia</th>
                         <th>Precio Unitario</th>
                         <th>Stock</th>
                     </tr>
@@ -521,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const tipo = movTipo.value;
         const cantidad = parseInt(movCantidad.value);
         const fechaVenc = movVencimiento.value;
-        const usrData = baseDeDatosUsuarios[usuarioSesionAddativa]; // corregido
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         const prod = usrData.inventario.find(p => p.id === id);
 
         if (tipo === 'ENTRADA') {

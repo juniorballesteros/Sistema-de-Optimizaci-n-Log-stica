@@ -34,7 +34,7 @@
         <section class="card login-card">
             <div class="tabs-auth">
                 <button id="tab-login" class="btn-tab active"><i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión</button>
-                <button id="tab-register" class="btn-tab"><i class="fa-solid fa-user-plus"></i> Crear Cuenta</button>
+                <button id="tab-register" class="btn-tab"><i class="fa-solid fa-user-plus"></i> Crear Cuenta y Sede</button>
             </div>
 
             <!-- FORMULARIO 1: INICIAR SESIÓN -->
@@ -51,12 +51,12 @@
                 <button type="submit" class="btn-primary">Ingresar al Inventario</button>
             </form>
 
-            <!-- FORMULARIO 2: REGISTRAR NUEVO USUARIO -->
+            <!-- FORMULARIO 2: REGISTRAR NUEVO USUARIO CON SELECCIÓN DE MAPA -->
             <form id="form-register" class="auth-form hidden">
-                <h3>Registrar Nueva Sede / Empresa</h3>
+                <h3>Registrar Sede y Ubicación Exacta</h3>
                 <div class="input-group">
                     <label for="reg-usuario">Nombre de Usuario:</label>
-                    <input type="text" id="reg-usuario" placeholder="Ej. gestor_ubate" required>
+                    <input type="text" id="reg-usuario" placeholder="Ej. empresa_norte" required>
                 </div>
                 <div class="input-group">
                     <label for="reg-ciudad">Ciudad Principal:</label>
@@ -69,18 +69,24 @@
                     </select>
                 </div>
                 <div class="input-group">
-                    <label for="reg-direccion">Dirección Exacta de la Empresa / Bodega:</label>
-                    <input type="text" id="reg-direccion" placeholder="Ej. Calle 4 # 4-20, Ubaté" required>
-                    <small style="color: #6b7280; font-size: 0.75rem; display: block; margin-top: 2px;">
-                        📍 Esta dirección se usará para ubicar el pin exacto en el mapa.
-                    </small>
+                    <label for="reg-direccion">Referencia / Dirección de la Bodega:</label>
+                    <input type="text" id="reg-direccion" placeholder="Ej. Bodega Principal Calle 4" required>
                 </div>
+
+                <!-- MINI MAPA INTERACTIVO PARA SELECCIONAR UBICACIÓN EXACTA -->
+                <div class="input-group">
+                    <label>📍 Haz clic en el mapa para ubicar el punto exacto de tu empresa:</label>
+                    <div id="mapa-registro" style="width: 100%; height: 200px; border-radius: 8px; border: 1px solid #d1d5db; z-index: 1;"></div>
+                    <small style="color: #2563eb; font-size: 0.75rem; display: block; margin-top: 4px;" id="lbl-coord-seleccionada">
+                        Coordenadas: No seleccionadas (Haz clic en el mapa)
+                    </small>
+                    <input type="hidden" id="reg-lat" required>
+                    <input type="hidden" id="reg-lng" required>
+                </div>
+
                 <div class="input-group">
                     <label for="reg-password">Nueva Contraseña:</label>
                     <input type="password" id="reg-password" placeholder="Mín. 6 chars, 1 mayúscula, 1 especial" required>
-                    <small style="color: #6b7280; font-size: 0.75rem; display: block; margin-top: 2px;">
-                        ⚠️ Al menos 1 mayúscula y 1 carácter especial o número (ej. @, $, !, %).
-                    </small>
                 </div>
                 <button type="submit" class="btn-primary">Guardar y Registrar Cuenta</button>
             </form>
@@ -114,20 +120,20 @@
             </div>
         </header>
 
-        <!-- SECCIÓN 1: MAPA NACIONAL CON DIRECCIÓN EXACTA -->
+        <!-- SECCIÓN 1: MAPA GENERAL DE SEDES -->
         <section id="seccion-mapa" class="card hidden">
-            <h3><i class="fa-solid fa-map"></i> Mapa de Centros de Distribución y Bodegas</h3>
+            <h3><i class="fa-solid fa-map"></i> Mapa General de Centros de Distribución</h3>
             <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 10px;">
-                Ubicación geolocalizada exacta de cada empresa según la dirección registrada.
+                Ubicación interactiva de cada empresa registrada en el sistema.
             </p>
             <div id="mapa-sedes" style="width: 100%; height: 320px; border-radius: 8px; z-index: 1;"></div>
         </section>
 
         <!-- SECCIÓN 2: COMPARADOR DE PRECIOS MULTICIUDAD -->
         <section id="seccion-comparador" class="card hidden">
-            <h3><i class="fa-solid fa-comments-dollar"></i> Comparador de Precios entre Sedes</h3>
+            <h3><i class="fa-solid fa-comments-dollar"></i> Comparador de Precios entre Empresas</h3>
             <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 12px;">
-                Compara los costos de los productos entre Ubaté, Bogotá y otras ciudades para identificar dónde comprar más económico.
+                Compara los costos de los productos entre las diferentes sedes para identificar dónde comprar más económico.
             </p>
             <div class="input-group" style="max-width: 350px;">
                 <label for="select-producto-comparar">Selecciona el Alimento a Comparar:</label>
@@ -199,7 +205,7 @@
         </section>
 
         <footer class="footer-creditos">
-            <p><strong>Proyecto de Aula:</strong> Sistema de Gestión de Inventarios y Lotes v2.1</p>
+            <p><strong>Proyecto de Aula:</strong> Sistema de Gestión de Inventarios y Lotes v2.2</p>
             <p>Desarrollado por el equipo de ingeniería | Ubaté - 2026</p>
         </footer>
     </div>
