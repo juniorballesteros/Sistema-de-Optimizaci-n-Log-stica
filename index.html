@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Gestión de Inventario - Ubaté</title>
+    <title>Sistema de Gestión de Inventario y Logística - Ubaté</title>
     
     <!-- Configuración para PWA (App Móvil) -->
     <link rel="manifest" href="manifest.json">
@@ -16,6 +16,9 @@
     <!-- Íconos FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- Leaflet CSS para el Mapa Interactivo -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
     <!-- Estilos CSS -->
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -25,7 +28,7 @@
     <div id="pantalla-login" class="container">
         <header class="header">
             <h1><i class="fa-solid fa-boxes-packing"></i> Sistema de Optimización Logística</h1>
-            <p class="subtitulo">Gestión de Suministros Alimentarios y Cadenas de Distribución - Ubaté</p>
+            <p class="subtitulo">Gestión de Suministros Alimentarios y Cadenas de Distribución - Colombia</p>
         </header>
 
         <section class="card login-card">
@@ -39,7 +42,7 @@
                 <h3>Ingresar al Sistema</h3>
                 <div class="input-group">
                     <label for="usuario">Usuario / Gestor de Logística:</label>
-                    <input type="text" id="usuario" placeholder="Ej. gestor_alimentos" required>
+                    <input type="text" id="usuario" placeholder="Ej. gestor_ubate" required>
                 </div>
                 <div class="input-group">
                     <label for="password">Contraseña:</label>
@@ -50,16 +53,26 @@
 
             <!-- FORMULARIO 2: REGISTRAR NUEVO USUARIO -->
             <form id="form-register" class="auth-form hidden">
-                <h3>Registrar Nuevo Operador</h3>
+                <h3>Registrar Nueva Sede / Operador</h3>
                 <div class="input-group">
-                    <label for="reg-usuario">Nuevo Usuario:</label>
-                    <input type="text" id="reg-usuario" placeholder="Crea un nombre de usuario" required>
+                    <label for="reg-usuario">Nombre de Usuario:</label>
+                    <input type="text" id="reg-usuario" placeholder="Ej. gestor_bogota" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-ciudad">Ciudad / Sede de Distribución:</label>
+                    <select id="reg-ciudad" required>
+                        <option value="Ubaté">Ubaté (Cundinamarca)</option>
+                        <option value="Bogotá">Bogotá D.C.</option>
+                        <option value="Villavicencio">Villavicencio (Meta)</option>
+                        <option value="Pereira">Pereira (Risaralda)</option>
+                        <option value="Montería">Montería (Córdoba)</option>
+                    </select>
                 </div>
                 <div class="input-group">
                     <label for="reg-password">Nueva Contraseña:</label>
                     <input type="password" id="reg-password" placeholder="Mín. 6 chars, 1 mayúscula, 1 especial" required>
                     <small style="color: #6b7280; font-size: 0.75rem; display: block; margin-top: 4px;">
-                        ⚠️ La contraseña debe incluir al menos una letra mayúscula y un carácter especial o número (ej. @, $, !, %, *, #, ?).
+                        ⚠️ Al menos 1 mayúscula y 1 carácter especial o número (ej. @, $, !, %).
                     </small>
                 </div>
                 <button type="submit" class="btn-primary">Guardar y Registrar Cuenta</button>
@@ -69,31 +82,57 @@
         </section>
     </div>
 
-    <!-- PANTALLA 2: MÓDULO DE STOCK Y PRECIOS -->
+    <!-- PANTALLA 2: MÓDULO PRINCIPAL (INVENTARIO + MAPA + COMPARADOR) -->
     <div id="pantalla-app" class="container hidden">
         <header class="header-app">
             <div>
-                <h2><i class="fa-solid fa-warehouse"></i> Control de Stock y Lotes Alimenticios</h2>
+                <h2><i class="fa-solid fa-warehouse"></i> Red Logística Nacional</h2>
                 <div class="controles-conexion">
                     <span id="estado-conexion" class="badge">
-                        <i class="fa-solid fa-wifi"></i> Online | <strong id="nombre-usuario-activo"></strong>
+                        <i class="fa-solid fa-wifi"></i> Online | <strong id="nombre-usuario-activo"></strong> (<span id="lbl-ciudad-usuario"></span>)
                     </span>
                     <button id="btn-toggle-red" class="btn-secondary" style="font-size:0.75rem; padding: 4px 8px;">
                         <i class="fa-solid fa-toggle-on"></i> Simular Red
                     </button>
                     <button id="btn-sincronizar" class="btn-sync hidden">
-                        <i class="fa-solid fa-rotate"></i> Sincronizar Cola (<span id="count-cola">0</span>)
+                        <i class="fa-solid fa-rotate"></i> Sincronizar (<span id="count-cola">0</span>)
                     </button>
                 </div>
             </div>
-            <div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button id="btn-vista-mapa" class="btn-secondary"><i class="fa-solid fa-map-location-dot"></i> Mapa Sedes</button>
+                <button id="btn-vista-comparador" class="btn-secondary" style="background-color: #2563eb;"><i class="fa-solid fa-scale-balanced"></i> Comparar Precios</button>
                 <button id="btn-reportes" class="btn-success"><i class="fa-solid fa-chart-line"></i> Reportes</button>
-                <button id="btn-logout" class="btn-secondary"><i class="fa-solid fa-power-off"></i> Salir</button>
+                <button id="btn-logout" class="btn-secondary" style="background-color: #374151;"><i class="fa-solid fa-power-off"></i> Salir</button>
             </div>
         </header>
 
+        <!-- SECCIÓN 1: MAPA NACIONAL DE DISTRIBUIDORAS -->
+        <section id="seccion-mapa" class="card hidden">
+            <h3><i class="fa-solid fa-map"></i> Mapa de Centros de Distribución Activos</h3>
+            <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 10px;">
+                Visualiza en tiempo real las sedes registradas en Ubaté y otras ciudades del país.
+            </p>
+            <div id="mapa-sedes" style="width: 100%; height: 320px; border-radius: 8px; z-index: 1;"></div>
+        </section>
+
+        <!-- SECCIÓN 2: COMPARADOR DE PRECIOS MULTICIUDAD -->
+        <section id="seccion-comparador" class="card hidden">
+            <h3><i class="fa-solid fa-comments-dollar"></i> Comparador de Precios entre Sedes</h3>
+            <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 12px;">
+                Compara los costos de los productos registrados en Ubaté frente a Bogotá y otras ciudades para identificar dónde abastecerse más económico.
+            </p>
+            <div class="input-group" style="max-width: 350px;">
+                <label for="select-producto-comparar">Selecciona el Alimento a Comparar:</label>
+                <select id="select-producto-comparar"></select>
+            </div>
+            <div id="resultado-comparacion" style="margin-top: 15px;">
+                <!-- Resultados dinámicos de comparación -->
+            </div>
+        </section>
+
         <!-- Formulario para registrar o modificar productos con lote inicial -->
-        <section class="card">
+        <section id="seccion-inventario-form" class="card">
             <h3 id="titulo-form-producto"><i class="fa-solid fa-pen-to-square"></i> Registrar Nuevo Producto Alimentario con Lote</h3>
             <form id="form-producto" class="grid-form">
                 <input type="hidden" id="prod-id">
@@ -130,7 +169,7 @@
         </section>
 
         <!-- Catálogo de Suministros y Alertas de Vencimiento -->
-        <section class="card">
+        <section id="seccion-inventario-tabla" class="card">
             <div class="acciones-superiores">
                 <h3><i class="fa-solid fa-list-check"></i> Catálogo de Suministros y Detalle de Lotes</h3>
                 
@@ -158,7 +197,7 @@
         </section>
 
         <footer class="footer-creditos">
-            <p><strong>Proyecto de Aula:</strong> Sistema de Gestión de Inventarios y Lotes v1.0</p>
+            <p><strong>Proyecto de Aula:</strong> Sistema de Gestión de Inventarios y Lotes v2.0</p>
             <p>Desarrollado por el equipo de ingeniería | Ubaté - 2026</p>
         </footer>
     </div>
@@ -230,6 +269,9 @@
             </table>
         </div>
     </div>
+
+    <!-- Leaflet JS para el Mapa Interactivo -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
     <!-- Script de lógica de la app -->
     <script src="script.js"></script>
