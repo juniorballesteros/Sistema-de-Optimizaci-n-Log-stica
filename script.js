@@ -49,8 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     precio: 11424,
                     lotes: [{ idLote: "lote_101", cantidad: 50, fechaVencimiento: "2026-11-15" }]
                 }
-            ],
-            historial: []
+            ]
         },
         "distribuidora_bogota": {
             nombreOriginal: "Distribuidora Bogotá D.C.",
@@ -74,22 +73,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     precio: 10710,
                     lotes: [{ idLote: "lote_bog_1", cantidad: 120, fechaVencimiento: "2026-12-10" }]
                 }
-            ],
-            historial: []
+            ]
         }
     };
 
     let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v2026')) || cuentasPredeterminadas;
-
     Object.keys(cuentasPredeterminadas).forEach(key => {
-        if (!baseDeDatosUsuarios[key]) {
-            baseDeDatosUsuarios[key] = cuentasPredeterminadas[key];
-        }
+        if (!baseDeDatosUsuarios[key]) baseDeDatosUsuarios[key] = cuentasPredeterminadas[key];
     });
 
     let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026') || null;
     let modoOnline = true;
-    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v2026')) || [];
     let productosDetectadosTemporal = [];
     let logoBase64Registro = "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
     let logoBase64Perfil = "";
@@ -115,27 +109,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const regLogoFile = document.getElementById('reg-logo-file');
     const previewRegLogo = document.getElementById('preview-reg-logo');
 
-    const nombreUsuarioActivo = document.getElementById('nombre-usuario-activo');
-    const lblCiudadUsuario = document.getElementById('lbl-ciudad-usuario');
-    const estadoConexion = document.getElementById('estado-conexion');
-    const btnToggleRed = document.getElementById('btn-toggle-red');
-    const btnLogout = document.getElementById('btn-logout');
+    const imgAvatarHeader = document.getElementById('img-avatar-header');
+    const btnPerfilAvatar = document.getElementById('btn-perfil-avatar');
 
-    const btnEditarPerfil = document.getElementById('btn-editar-perfil');
-    const modalPerfil = document.getElementById('modal-perfil');
-    const btnCerrarPerfil = document.getElementById('btn-cerrar-perfil');
-    const formEditarPerfil = document.getElementById('form-editar-perfil');
-    const perfilDepartamento = document.getElementById('perfil-departamento');
-    const perfilCiudad = document.getElementById('perfil-ciudad');
-    const perfilDireccion = document.getElementById('perfil-direccion');
-    const perfilLogoFile = document.getElementById('perfil-logo-file');
-    const previewPerfilLogo = document.getElementById('preview-perfil-logo');
+    const navExplorar = document.getElementById('nav-explorar');
+    const navMisProductos = document.getElementById('nav-mis-productos');
+    const navComparar = document.getElementById('nav-comparar');
+    const navPerfil = document.getElementById('nav-perfil');
 
-    const btnVistaMapa = document.getElementById('btn-vista-mapa');
-    const btnVistaComparador = document.getElementById('btn-vista-comparador');
-    const seccionMapa = document.getElementById('seccion-mapa');
-    const seccionComparador = document.getElementById('seccion-comparador');
+    const chipMapa = document.getElementById('chip-mapa');
+    const chipMisProductos = document.getElementById('chip-mis-productos');
+    const chipComparar = document.getElementById('chip-comparar');
+    const chipRedToggle = document.getElementById('chip-red-toggle');
+    const lblEstadoRed = document.getElementById('lbl-estado-red');
 
+    const sheetProductos = document.getElementById('sheet-productos');
+    const sheetComparador = document.getElementById('sheet-comparador');
+    const btnCerrarSheet = document.getElementById('btn-cerrar-sheet');
+    const btnCerrarComparador = document.getElementById('btn-cerrar-comparador');
+
+    const btnMiUbicacion = document.getElementById('btn-mi-ubicacion');
+    const btnLogoutFab = document.getElementById('btn-logout-fab');
+
+    const inputBuscarMapa = document.getElementById('input-buscar-mapa');
     const selectProductoComparar = document.getElementById('select-producto-comparar');
     const resultadoComparacion = document.getElementById('resultado-comparacion');
 
@@ -159,14 +155,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const prodCosto = document.getElementById('prod-costo');
     const prodIva = document.getElementById('prod-iva');
     const prodMargen = document.getElementById('prod-margen');
-    const tituloFormProducto = document.getElementById('titulo-form-producto');
-
-    const inputBuscar = document.getElementById('input-buscar');
     const tablaBody = document.getElementById('tabla-body');
+
+    const modalPerfil = document.getElementById('modal-perfil');
+    const btnCerrarPerfil = document.getElementById('btn-cerrar-perfil');
+    const formEditarPerfil = document.getElementById('form-editar-perfil');
+    const perfilDepartamento = document.getElementById('perfil-departamento');
+    const perfilCiudad = document.getElementById('perfil-ciudad');
+    const perfilDireccion = document.getElementById('perfil-direccion');
+    const perfilLogoFile = document.getElementById('perfil-logo-file');
+    const previewPerfilLogo = document.getElementById('preview-perfil-logo');
 
     function guardarEnStorage() {
         localStorage.setItem('bd_logistica_ubate_v2026', JSON.stringify(baseDeDatosUsuarios));
-        localStorage.setItem('cola_sync_ubate_v2026', JSON.stringify(colaSincronizacion));
     }
 
     function mostrarMensaje(msg, tipo) {
@@ -175,34 +176,28 @@ document.addEventListener('DOMContentLoaded', () => {
         mensajeAuth.classList.remove('hidden');
     }
 
-    // Convertir imagen seleccionada a Base64
     function convertirImagenABase64(fileInput, callback) {
         const file = fileInput.files[0];
-        if (!file) {
-            callback(null);
-            return;
-        }
+        if (!file) { callback(null); return; }
         const reader = new FileReader();
-        reader.onload = function(e) {
-            callback(e.target.result);
-        };
+        reader.onload = e => callback(e.target.result);
         reader.readAsDataURL(file);
     }
 
     regLogoFile.addEventListener('change', () => {
-        convertirImagenABase64(regLogoFile, (base64) => {
+        convertirImagenABase64(regLogoFile, base64 => {
             if (base64) {
                 logoBase64Registro = base64;
-                previewRegLogo.innerHTML = `<img src="${base64}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #16a34a;"> <span style="font-size:0.75rem; color:#16a34a;">Logo listo</span>`;
+                previewRegLogo.innerHTML = `<img src="${base64}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #16a34a;">`;
             }
         });
     });
 
     perfilLogoFile.addEventListener('change', () => {
-        convertirImagenABase64(perfilLogoFile, (base64) => {
+        convertirImagenABase64(perfilLogoFile, base64 => {
             if (base64) {
                 logoBase64Perfil = base64;
-                previewPerfilLogo.innerHTML = `<img src="${base64}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #16a34a;"> <span style="font-size:0.75rem; color:#16a34a;">Nuevo logo listo</span>`;
+                previewPerfilLogo.innerHTML = `<img src="${base64}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #2563eb;">`;
             }
         });
     });
@@ -210,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function configurarSelectores(selectDepto, selectMun) {
         selectDepto.addEventListener('change', () => {
             const depto = selectDepto.value;
-            selectMun.innerHTML = '<option value="">Seleccione un municipio...</option>';
+            selectMun.innerHTML = '<option value="">Seleccione...</option>';
             if (municipiosDeColombia[depto]) {
                 municipiosDeColombia[depto].forEach(muni => {
                     const opt = document.createElement('option');
@@ -228,9 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
     regCiudad.addEventListener('change', () => {
         const muni = regCiudad.value;
         const coords = coordenadasBaseSedes[muni] || { lat: 4.6097, lng: -74.0817 };
-        if (mapaRegistro) {
-            mapaRegistro.setView([coords.lat, coords.lng], 13);
-        }
+        if (mapaRegistro) mapaRegistro.setView([coords.lat, coords.lng], 13);
     });
 
     tabLogin.addEventListener('click', () => {
@@ -238,7 +231,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tabRegister.classList.remove('active');
         formLogin.classList.remove('hidden');
         formRegister.classList.add('hidden');
-        mensajeAuth.classList.add('hidden');
     });
 
     tabRegister.addEventListener('click', () => {
@@ -246,93 +238,71 @@ document.addEventListener('DOMContentLoaded', () => {
         tabLogin.classList.remove('active');
         formRegister.classList.remove('hidden');
         formLogin.classList.add('hidden');
-        mensajeAuth.classList.add('hidden');
-
-        setTimeout(() => {
-            inicializarMapaRegistro();
-        }, 300);
+        setTimeout(() => inicializarMapaRegistro(), 300);
     });
 
     function inicializarMapaRegistro() {
         if (!mapaRegistro) {
             mapaRegistro = L.map('mapa-registro').setView([5.3114, -73.8169], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '© OpenStreetMap'
-            }).addTo(mapaRegistro);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapaRegistro);
 
             mapaRegistro.on('click', (e) => {
                 const lat = e.latlng.lat;
                 const lng = e.latlng.lng;
                 regLat.value = lat;
                 regLng.value = lng;
-                lblCoordSeleccionada.innerHTML = `✅ Ubicación fijada: Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`;
+                lblCoordSeleccionada.innerHTML = `✅ Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`;
 
-                if (marcadorRegistro) {
-                    marcadorRegistro.setLatLng([lat, lng]);
-                } else {
-                    marcadorRegistro = L.marker([lat, lng], { draggable: true }).addTo(mapaRegistro);
-                }
+                if (marcadorRegistro) marcadorRegistro.setLatLng([lat, lng]);
+                else marcadorRegistro = L.marker([lat, lng], { draggable: true }).addTo(mapaRegistro);
             });
         } else {
             mapaRegistro.invalidateSize();
         }
     }
 
-    // REGISTRO DE EMPRESA
     formRegister.addEventListener('submit', (e) => {
         e.preventDefault();
         const usuarioInput = document.getElementById('reg-usuario').value;
-        const nuevoUsuarioKey = usuarioInput.trim().toLowerCase();
-        const nuevoDepto = regDepartamento.value;
-        const nuevaCiudad = regCiudad.value;
-        const nuevaDireccion = document.getElementById('reg-direccion').value.trim();
-        const nuevaPassword = document.getElementById('reg-password').value.trim();
+        const usrKey = usuarioInput.trim().toLowerCase();
+        const depto = regDepartamento.value;
+        const ciudad = regCiudad.value;
+        const dir = document.getElementById('reg-direccion').value.trim();
+        const pass = document.getElementById('reg-password').value.trim();
         const lat = parseFloat(regLat.value);
         const lng = parseFloat(regLng.value);
 
-        if (!nuevoUsuarioKey || !nuevaPassword || !nuevaDireccion || !nuevoDepto || !nuevaCiudad) return;
-
         if (isNaN(lat) || isNaN(lng)) {
-            alert("⚠️ Por favor haz clic en el mapa de registro para seleccionar la ubicación exacta de tu empresa.");
+            alert("⚠️ Haz clic en el mapa para seleccionar la ubicación exacta de tu bodega.");
             return;
         }
 
-        if (baseDeDatosUsuarios[nuevoUsuarioKey]) {
-            mostrarMensaje("El nombre de la empresa ya existe. Elige otro.", "error");
+        if (baseDeDatosUsuarios[usrKey]) {
+            mostrarMensaje("El nombre de la empresa ya existe.", "error");
             return;
         }
 
-        baseDeDatosUsuarios[nuevoUsuarioKey] = {
+        baseDeDatosUsuarios[usrKey] = {
             nombreOriginal: usuarioInput.trim(),
-            password: nuevaPassword,
-            departamento: nuevoDepto,
-            ciudad: nuevaCiudad,
-            direccion: nuevaDireccion,
+            password: pass,
+            departamento: depto,
+            ciudad: ciudad,
+            direccion: dir,
             logo: logoBase64Registro,
             lat: lat,
             lng: lng,
-            inventario: [],
-            historial: []
+            inventario: []
         };
 
         guardarEnStorage();
-        mostrarMensaje("¡Empresa y perfil registrados con éxito!", "exito");
-        formRegister.reset();
-        previewRegLogo.innerHTML = '';
-        logoBase64Registro = "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
-
-        setTimeout(() => {
-            tabLogin.click();
-            document.getElementById('usuario').value = usuarioInput.trim();
-        }, 1500);
+        usuarioSesionActiva = usrKey;
+        localStorage.setItem('sesion_activa_ubate_v2026', usrKey);
+        iniciarApp();
     });
 
-    // INICIO DE SESIÓN
     formLogin.addEventListener('submit', (e) => {
         e.preventDefault();
-        const usuarioInput = document.getElementById('usuario').value.trim();
-        const usrKey = usuarioInput.toLowerCase();
+        const usrKey = document.getElementById('usuario').value.trim().toLowerCase();
         const pass = document.getElementById('password').value.trim();
 
         if (baseDeDatosUsuarios[usrKey] && baseDeDatosUsuarios[usrKey].password === pass) {
@@ -344,30 +314,157 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    btnLogout.addEventListener('click', () => {
+    btnLogoutFab.addEventListener('click', () => {
         usuarioSesionActiva = null;
         localStorage.removeItem('sesion_activa_ubate_v2026');
         pantallaApp.classList.add('hidden');
         pantallaLogin.classList.remove('hidden');
-        formLogin.reset();
-        mensajeAuth.classList.add('hidden');
     });
 
-    // GESTIÓN DE PERFIL (MODAL)
-    btnEditarPerfil.addEventListener('click', () => {
+    // INICIALIZACIÓN APP ESTILO GOOGLE MAPS
+    function iniciarApp() {
+        pantallaLogin.classList.add('hidden');
+        pantallaApp.classList.remove('hidden');
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
-        if (!usrData) return;
-        perfilDepartamento.value = usrData.departamento || "Cundinamarca";
-        // Disparar evento para cargar municipios
-        perfilDepartamento.dispatchEvent(new Event('change'));
-        setTimeout(() => {
-            perfilCiudad.value = usrData.ciudad || "";
-        }, 50);
-        perfilDireccion.value = usrData.direccion || "";
-        logoBase64Perfil = usrData.logo || "";
-        previewPerfilLogo.innerHTML = `<img src="${logoBase64Perfil}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #2563eb;">`;
-        modalPerfil.classList.remove('hidden');
+
+        if (usrData.logo) {
+            imgAvatarHeader.src = usrData.logo;
+        }
+
+        renderizarTabla();
+        setTimeout(() => inicializarMapaPrincipal(), 300);
+    }
+
+    function inicializarMapaPrincipal() {
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        const latCentro = usrData ? usrData.lat : 5.3114;
+        const lngCentro = usrData ? usrData.lng : -73.8169;
+
+        if (!mapaPrincipal) {
+            mapaPrincipal = L.map('mapa-sedes', { zoomControl: false }).setView([latCentro, lngCentro], 7);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapaPrincipal);
+        } else {
+            mapaPrincipal.setView([latCentro, lngCentro], 7);
+            mapaPrincipal.invalidateSize();
+        }
+
+        mapaPrincipal.eachLayer(layer => {
+            if (layer instanceof L.Marker) mapaPrincipal.removeLayer(layer);
+        });
+
+        Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
+            const dataUsr = baseDeDatosUsuarios[usrKey];
+            const lat = dataUsr.lat || 5.3114;
+            const lng = dataUsr.lng || -73.8169;
+            const logo = dataUsr.logo || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
+            const nombreMostrar = dataUsr.nombreOriginal || usrKey;
+            const esActual = (usrKey === usuarioSesionActiva);
+
+            let listaProductosHTML = "";
+            if (dataUsr.inventario && dataUsr.inventario.length > 0) {
+                listaProductosHTML = `
+                    <div style="max-height: 130px; overflow-y: auto; text-align: left; margin-top: 6px; border-top: 1px solid #e2e8f0; padding-top: 4px;">
+                        <strong style="font-size:0.75rem; color:#1f2937;">📦 Productos y Precios:</strong>
+                        <ul style="margin: 3px 0 0 12px; padding: 0; font-size: 0.72rem; color: #475569;">
+                `;
+                dataUsr.inventario.forEach(prod => {
+                    listaProductosHTML += `<li style="margin-bottom:2px;"><strong>${prod.nombre}</strong> (${prod.stock} un.) - <strong>$${prod.precio.toLocaleString()} COP</strong></li>`;
+                });
+                listaProductosHTML += `</ul></div>`;
+            } else {
+                listaProductosHTML = `<p style="margin-top:4px; font-size:0.72rem; color:#dc2626;">Sin productos en stock.</p>`;
+            }
+
+            const customIcon = L.divIcon({
+                className: 'custom-map-pin',
+                html: `<div style="width:38px; height:38px; border-radius:50%; border:3px solid ${esActual ? '#16a34a' : '#1a73e8'}; overflow:hidden; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);"><img src="${logo}" style="width:100%; height:100%; object-fit:cover;"></div>`,
+                iconSize: [38, 38],
+                iconAnchor: [19, 19]
+            });
+
+            const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapaPrincipal);
+            marker.bindPopup(`
+                <div style="font-family:sans-serif; text-align:center; width:210px;">
+                    <strong style="color:${esActual ? '#16a34a' : '#1a73e8'}; font-size:0.9rem;">${nombreMostrar.toUpperCase()} ${esActual ? '(Tu Distribuidora)' : ''}</strong><br>
+                    <span style="font-size:0.75rem; color:#64748b;">📍 ${dataUsr.ciudad}, ${dataUsr.departamento}</span><br>
+                    <span style="font-size:0.72rem; color:#94a3b8;">${dataUsr.direccion}</span>
+                    ${listaProductosHTML}
+                </div>
+            `, { maxWidth: 240 });
+
+            if (esActual) marker.openPopup();
+        });
+    }
+
+    // NAVEGACIÓN BOTTOM BAR Y CHIPS
+    function activarTab(tabName) {
+        navExplorar.classList.remove('active');
+        navMisProductos.classList.remove('active');
+        navComparar.classList.remove('active');
+        navPerfil.classList.remove('active');
+
+        chipMapa.classList.remove('active');
+        chipMisProductos.classList.remove('active');
+        chipComparar.classList.remove('active');
+
+        sheetProductos.classList.add('hidden');
+        sheetComparador.classList.add('hidden');
+
+        if (tabName === 'explorar') {
+            navExplorar.classList.add('active');
+            chipMapa.classList.add('active');
+            if (mapaPrincipal) mapaPrincipal.invalidateSize();
+        } else if (tabName === 'productos') {
+            navMisProductos.classList.add('active');
+            chipMisProductos.classList.add('active');
+            sheetProductos.classList.remove('hidden');
+        } else if (tabName === 'comparar') {
+            navComparar.classList.add('active');
+            chipComparar.classList.add('active');
+            poblarSelectorComparador();
+            actualizarComparacionPrecios();
+            sheetComparador.classList.remove('hidden');
+        } else if (tabName === 'perfil') {
+            navPerfil.classList.add('active');
+            abrirModalPerfil();
+        }
+    }
+
+    navExplorar.addEventListener('click', () => activarTab('explorar'));
+    navMisProductos.addEventListener('click', () => activarTab('productos'));
+    navComparar.addEventListener('click', () => activarTab('comparar'));
+    navPerfil.addEventListener('click', () => activarTab('perfil'));
+
+    chipMapa.addEventListener('click', () => activarTab('explorar'));
+    chipMisProductos.addEventListener('click', () => activarTab('productos'));
+    chipComparar.addEventListener('click', () => activarTab('comparar'));
+
+    btnCerrarSheet.addEventListener('click', () => activarTab('explorar'));
+    btnCerrarComparador.addEventListener('click', () => activarTab('explorar'));
+
+    btnMiUbicacion.addEventListener('click', () => {
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        if (usrData && mapaPrincipal) {
+            mapaPrincipal.setView([usrData.lat, usrData.lng], 14);
+        }
     });
+
+    chipRedToggle.addEventListener('click', () => {
+        modoOnline = !modoOnline;
+        lblEstadoRed.textContent = modoOnline ? "Online" : "Offline";
+        chipRedToggle.style.color = modoOnline ? "#1a73e8" : "#dc2626";
+    });
+
+    btnPerfilAvatar.addEventListener('click', () => abrirModalPerfil());
+
+    function abrirModalPerfil() {
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        perfilDepartamento.value = usrData.departamento || "Cundinamarca";
+        perfilDepartamento.dispatchEvent(new Event('change'));
+        setTimeout(() => perfilCiudad.value = usrData.ciudad || "", 50);
+        perfilDireccion.value = usrData.direccion || "";
+        modalPerfil.classList.remove('hidden');
+    }
 
     btnCerrarPerfil.addEventListener('click', () => modalPerfil.classList.add('hidden'));
 
@@ -379,6 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
         usrData.direccion = perfilDireccion.value.trim();
         if (logoBase64Perfil) {
             usrData.logo = logoBase64Perfil;
+            imgAvatarHeader.src = logoBase64Perfil;
         }
 
         const coords = coordenadasBaseSedes[usrData.ciudad];
@@ -389,19 +487,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         guardarEnStorage();
         modalPerfil.classList.add('hidden');
-        lblCiudadUsuario.textContent = `${usrData.ciudad}, ${usrData.departamento}`;
-        alert("✅ Perfil corporativo actualizado con éxito.");
+        inicializarMapaPrincipal();
+        alert("✅ Datos de la distribuidora actualizados.");
     });
 
-    // MÓDULO OCR: ESCANEO Y APERTURA DE VENTANA DE PRE-REVISIÓN
+    // ESCANEO OCR FACTURA CON VENTANA DE PRE-REVISIÓN
     btnProcesarOCR.addEventListener('click', async () => {
         const archivo = inputFotoFactura.files[0];
         if (!archivo) {
-            alert("⚠️ Por favor selecciona o tómale una foto a la factura antes de procesarla.");
+            alert("⚠️ Selecciona o tómale una foto a la factura.");
             return;
         }
 
-        estadoOCR.innerHTML = "⏳ Escaneando factura con OCR... Extrayendo nombres, cantidades y costos...";
+        estadoOCR.innerHTML = "⏳ Escaneando productos con OCR...";
         productosDetectadosTemporal = [];
 
         try {
@@ -413,11 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            const textoExtraido = result.data.text;
-            console.log("Texto extraído de la factura:", textoExtraido);
-
-            const lineas = textoExtraido.split('\n');
-
+            const lineas = result.data.text.split('\n');
             lineas.forEach((linea, index) => {
                 const numeros = linea.match(/\d+/g);
                 if (numeros && numeros.length >= 1) {
@@ -426,7 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     let descripcion = linea.replace(/[0-9]/g, '').trim();
 
                     const textoMin = descripcion.toLowerCase();
-                    const esBasura = textoMin.includes('nit') || textoMin.includes('total') || textoMin.includes('subtotal') || textoMin.includes('iva') || textoMin.includes('direccion') || textoMin.includes('tel') || textoMin.includes('factura');
+                    const esBasura = textoMin.includes('nit') || textoMin.includes('total') || textoMin.includes('subtotal') || textoMin.includes('iva') || textoMin.includes('tel');
 
                     if (descripcion.length > 3 && costoBase > 500 && !esBasura) {
                         productosDetectadosTemporal.push({
@@ -442,15 +536,15 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (productosDetectadosTemporal.length > 0) {
-                estadoOCR.innerHTML = `✅ ¡Escaneo completado! Se detectaron ${productosDetectadosTemporal.length} ítems. Revisa y confirma los datos en la ventana emergente.`;
+                estadoOCR.innerHTML = `✅ ¡Escaneo completado! ${productosDetectadosTemporal.length} productos detectados.`;
                 abrirModalAuditoria();
             } else {
-                estadoOCR.innerHTML = `⚠️ <strong>Factura no legible:</strong> No se detectaron productos claros. Por favor, <strong>toma una foto más nítida y con mejor iluminación</strong> o ingresa el producto manualmente abajo.`;
+                estadoOCR.innerHTML = `⚠️ No se leyeron productos claros. Toma una foto más nítida.`;
             }
 
         } catch (err) {
             console.error(err);
-            estadoOCR.innerHTML = `⚠️ <strong>Error en OCR:</strong> No se pudo procesar la imagen. Inténtalo de nuevo con otra foto.`;
+            estadoOCR.innerHTML = `⚠️ Error al escanear imagen.`;
         }
     });
 
@@ -459,17 +553,17 @@ document.addEventListener('DOMContentLoaded', () => {
         productosDetectadosTemporal.forEach((prod, idx) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><input type="text" value="${prod.nombre}" id="aud-nombre-${idx}" style="width:100%; padding:4px;"></td>
-                <td><input type="number" value="${prod.cantidad}" min="1" id="aud-cant-${idx}" style="width:70px; padding:4px;"></td>
-                <td><input type="number" value="${prod.costo}" min="0" id="aud-costo-${idx}" style="width:100px; padding:4px;"></td>
+                <td><input type="text" value="${prod.nombre}" id="aud-nombre-${idx}" style="width:100%;"></td>
+                <td><input type="number" value="${prod.cantidad}" min="1" id="aud-cant-${idx}" style="width:50px;"></td>
+                <td><input type="number" value="${prod.costo}" min="0" id="aud-costo-${idx}" style="width:80px;"></td>
                 <td>
-                    <select id="aud-iva-${idx}" style="padding:4px;">
+                    <select id="aud-iva-${idx}">
                         <option value="0" ${prod.iva === 0 ? 'selected' : ''}>0%</option>
                         <option value="5" ${prod.iva === 5 ? 'selected' : ''}>5%</option>
                         <option value="19" ${prod.iva === 19 ? 'selected' : ''}>19%</option>
                     </select>
                 </td>
-                <td><input type="number" value="${prod.margen}" min="0" id="aud-margen-${idx}" style="width:70px; padding:4px;"></td>
+                <td><input type="number" value="${prod.margen}" min="0" id="aud-margen-${idx}" style="width:50px;"></td>
             `;
             tablaAuditoriaBody.appendChild(tr);
         });
@@ -479,7 +573,6 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCerrarAuditoria.addEventListener('click', () => modalAuditoriaFactura.classList.add('hidden'));
     btnCancelarAuditoria.addEventListener('click', () => modalAuditoriaFactura.classList.add('hidden'));
 
-    // CONFIRMAR DATOS EDITADOS EN LA VENTANA DE PRE-REVISIÓN
     btnConfirmarIngresoFactura.addEventListener('click', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         let ingresados = 0;
@@ -514,106 +607,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
         guardarEnStorage();
         renderizarTabla();
+        inicializarMapaPrincipal();
         modalAuditoriaFactura.classList.add('hidden');
         inputFotoFactura.value = '';
-        estadoOCR.innerHTML = `✅ <strong>¡Inventario actualizado!</strong> Se ingresaron oficialmente <strong>${ingresados} productos auditados</strong> con sus precios de venta calculados y publicados en el mapa.`;
+        estadoOCR.innerHTML = `✅ ¡Ingresados ${ingresados} productos al stock del mapa!`;
     });
 
-    function iniciarApp() {
-        pantallaLogin.classList.add('hidden');
-        pantallaApp.classList.remove('hidden');
-        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
-        nombreUsuarioActivo.textContent = usrData.nombreOriginal || usuarioSesionActiva;
-        lblCiudadUsuario.textContent = `${usrData.ciudad || "Ubaté"}, ${usrData.departamento || "Cundinamarca"}`;
-        actualizarEstadoRed();
-        renderizarTabla();
-    }
+    // BUSCADOR EN EL MAPA
+    inputBuscarMapa.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        if (!query) return;
 
-    btnVistaMapa.addEventListener('click', () => {
-        seccionMapa.classList.toggle('hidden');
-        if (!seccionMapa.classList.contains('hidden')) {
-            inicializarMapaPrincipal();
-        }
-    });
+        Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
+            const usr = baseDeDatosUsuarios[usrKey];
+            const coincideDistribuidora = usr.nombreOriginal.toLowerCase().includes(query) || usr.ciudad.toLowerCase().includes(query);
+            const coincideProducto = usr.inventario.some(p => p.nombre.toLowerCase().includes(query));
 
-    btnVistaComparador.addEventListener('click', () => {
-        seccionComparador.classList.toggle('hidden');
-        if (!seccionComparador.classList.contains('hidden')) {
-            poblarSelectorComparador();
-            actualizarComparacionPrecios();
-        }
-    });
-
-    function inicializarMapaPrincipal() {
-        setTimeout(() => {
-            const dataUsuarioActual = baseDeDatosUsuarios[usuarioSesionActiva];
-            const latCentro = dataUsuarioActual ? dataUsuarioActual.lat : 5.3114;
-            const lngCentro = dataUsuarioActual ? dataUsuarioActual.lng : -73.8169;
-
-            if (!mapaPrincipal) {
-                mapaPrincipal = L.map('mapa-sedes').setView([latCentro, lngCentro], 6);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '© OpenStreetMap'
-                }).addTo(mapaPrincipal);
-            } else {
-                mapaPrincipal.setView([latCentro, lngCentro], 6);
-                mapaPrincipal.invalidateSize();
+            if ((coincideDistribuidora || coincideProducto) && mapaPrincipal) {
+                mapaPrincipal.setView([usr.lat, usr.lng], 12);
             }
-
-            mapaPrincipal.eachLayer((layer) => {
-                if (layer instanceof L.Marker) {
-                    mapaPrincipal.removeLayer(layer);
-                }
-            });
-
-            Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
-                const dataUsr = baseDeDatosUsuarios[usrKey];
-                const lat = dataUsr.lat || 5.3114;
-                const lng = dataUsr.lng || -73.8169;
-                const depto = dataUsr.departamento || "Cundinamarca";
-                const ciudad = dataUsr.ciudad || "Ubaté";
-                const direccion = dataUsr.direccion || "Ubicación sede";
-                const logo = dataUsr.logo || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
-                const nombreMostrar = dataUsr.nombreOriginal || usrKey;
-                const esUsuarioActual = (usrKey === usuarioSesionActiva);
-
-                let listaProductosHTML = "";
-                if (dataUsr.inventario && dataUsr.inventario.length > 0) {
-                    listaProductosHTML = `
-                        <div style="max-height: 140px; overflow-y: auto; text-align: left; margin-top: 8px; border-top: 1px solid #e5e7eb; padding-top: 6px;">
-                            <strong style="font-size:0.8rem; color:#1f2937;">📦 Inventario y Precios de Venta:</strong>
-                            <ul style="margin: 4px 0 0 15px; padding: 0; font-size: 0.75rem; color: #4b5563;">
-                    `;
-                    dataUsr.inventario.forEach(prod => {
-                        const precioFmt = prod.precio ? prod.precio.toLocaleString() : '0';
-                        listaProductosHTML += `<li style="margin-bottom: 3px;"><strong>${prod.nombre}</strong> (${prod.stock} un.) $\u00A0<strong>${precioFmt} COP</strong></li>`;
-                    });
-                    listaProductosHTML += `</ul></div>`;
-                } else {
-                    listaProductosHTML = `<p style="margin: 6px 0 0 0; font-size: 0.75rem; color: #dc2626;">Sin productos registrados.</p>`;
-                }
-
-                const marker = L.marker([lat, lng]).addTo(mapaPrincipal);
-
-                marker.bindPopup(`
-                    <div style="font-family: sans-serif; text-align: center; width: 220px;">
-                        <img src="${logo}" alt="Logo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #dc2626; margin-bottom: 4px;"><br>
-                        <strong style="color: ${esUsuarioActual ? '#dc2626' : '#2563eb'}; font-size: 0.95rem;">
-                            ${nombreMostrar.toUpperCase()} ${esUsuarioActual ? '(Tu Empresa)' : ''}
-                        </strong><br>
-                        <span style="font-size: 0.8rem; color: #4b5563;">📍 ${ciudad}, ${depto}</span><br>
-                        <span style="font-size: 0.75rem; color: #6b7280;">Ref: ${direccion}</span>
-                        ${listaProductosHTML}
-                    </div>
-                `, { maxWidth: 260 });
-
-                if (esUsuarioActual) {
-                    marker.openPopup();
-                }
-            });
-        }, 300);
-    }
+        });
+    });
 
     function poblarSelectorComparador() {
         const productosUnicos = new Set();
@@ -631,95 +645,39 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function actualizarComparacionPrecios() {
-        const productoSeleccionado = selectProductoComparar.value;
-        if (!productoSeleccionado) {
-            resultadoComparacion.innerHTML = `<p style="color:#6b7280;">No hay productos para comparar.</p>`;
+        const prodSel = selectProductoComparar.value;
+        if (!prodSel) {
+            resultadoComparacion.innerHTML = `<p style="color:#64748b;">No hay productos para comparar.</p>`;
             return;
         }
 
-        let comparativaHTML = `
-            <table class="tabla-inventario">
-                <thead>
-                    <tr>
-                        <th>Empresa</th>
-                        <th>Ubicación</th>
-                        <th>Precio Venta Público</th>
-                        <th>Stock</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
+        let html = `<table class="tabla-inventario"><thead><tr><th>Empresa</th><th>Ubicación</th><th>Precio Público</th><th>Stock</th></tr></thead><tbody>`;
         let encontrado = false;
         let mejorPrecio = Infinity;
         let mejorSede = "";
 
         Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
-            const dataUsr = baseDeDatosUsuarios[usrKey];
-            const prodEnSede = dataUsr.inventario.find(p => p.nombre === productoSeleccionado);
-            const logo = dataUsr.logo || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
-            const nombreMostrar = dataUsr.nombreOriginal || usrKey;
-
-            if (prodEnSede) {
+            const usr = baseDeDatosUsuarios[usrKey];
+            const prod = usr.inventario.find(p => p.nombre === prodSel);
+            if (prod) {
                 encontrado = true;
-                if (prodEnSede.precio < mejorPrecio) {
-                    mejorPrecio = prodEnSede.precio;
-                    mejorSede = `${nombreMostrar} (${dataUsr.ciudad}, ${dataUsr.departamento})`;
+                if (prod.precio < mejorPrecio) {
+                    mejorPrecio = prod.precio;
+                    mejorSede = `${usr.nombreOriginal} (${usr.ciudad})`;
                 }
-
-                comparativaHTML += `
-                    <tr>
-                        <td>
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <img src="${logo}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #d1d5db;">
-                                <strong>${nombreMostrar}</strong>
-                            </div>
-                        </td>
-                        <td><strong>${dataUsr.ciudad} (${dataUsr.departamento})</strong></td>
-                        <td style="font-weight:bold; color:#16a34a;">$ ${prodEnSede.precio.toLocaleString()} COP</td>
-                        <td>${prodEnSede.stock} un.</td>
-                    </tr>
-                `;
+                html += `<tr><td><strong>${usr.nombreOriginal}</strong></td><td>${usr.ciudad}</td><td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()} COP</td><td>${prod.stock} un.</td></tr>`;
             }
         });
-
-        comparativaHTML += `</tbody></table>`;
+        html += `</tbody></table>`;
 
         if (encontrado) {
-            comparativaHTML = `
-                <div style="background:#f0fdf4; border:1px solid #86efac; padding:10px; border-radius:8px; margin-bottom:12px; color:#15803d; font-size:0.9rem;">
-                    💡 <strong>Mejor Precio Público:</strong> Ofrecido por <strong>${mejorSede}</strong> a solo <strong>$ ${mejorPrecio.toLocaleString()} COP</strong>.
-                </div>
-            ` + comparativaHTML;
-        } else {
-            comparativaHTML = `<p style="color:#dc2626;">Ninguna otra empresa tiene registrado este producto.</p>`;
+            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Precio:</strong> ${mejorSede} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong></div>` + html;
         }
-
-        resultadoComparacion.innerHTML = comparativaHTML;
+        resultadoComparacion.innerHTML = html;
     }
 
     selectProductoComparar.addEventListener('change', actualizarComparacionPrecios);
 
-    btnToggleRed.addEventListener('click', () => {
-        modoOnline = !modoOnline;
-        actualizarEstadoRed();
-    });
-
-    function actualizarEstadoRed() {
-        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
-        const ubicacion = usrData ? `${usrData.ciudad}, ${usrData.departamento}` : "Colombia";
-        const nombreMostrar = usrData ? (usrData.nombreOriginal || usuarioSesionActiva) : usuarioSesionActiva;
-        
-        if (modoOnline) {
-            estadoConexion.className = "badge";
-            estadoConexion.innerHTML = `<i class="fa-solid fa-wifi"></i> Online | <strong>${nombreMostrar}</strong> (${ubicacion})`;
-        } else {
-            estadoConexion.className = "badge offline";
-            estadoConexion.innerHTML = `<i class="fa-solid fa-ban"></i> Offline | <strong>${nombreMostrar}</strong> (${ubicacion})`;
-        }
-    }
-
-    // REGISTRO O EDICIÓN MANUAL DE PRODUCTO
     formProducto.addEventListener('submit', (e) => {
         e.preventDefault();
         const id = prodId.value;
@@ -736,18 +694,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
 
         if (id) {
-            const prodIndex = usrData.inventario.findIndex(p => p.id === id);
-            if (prodIndex !== -1) {
-                usrData.inventario[prodIndex].codigo = codigo;
-                usrData.inventario[prodIndex].nombre = nombre;
-                usrData.inventario[prodIndex].minimo = minNum;
-                usrData.inventario[prodIndex].costoCompra = costoNum;
-                usrData.inventario[prodIndex].ivaPorcentaje = ivaNum;
-                usrData.inventario[prodIndex].margenPorcentaje = margenNum;
-                usrData.inventario[prodIndex].precio = precioFinal;
+            const idx = usrData.inventario.findIndex(p => p.id === id);
+            if (idx !== -1) {
+                usrData.inventario[idx].codigo = codigo;
+                usrData.inventario[idx].nombre = nombre;
+                usrData.inventario[idx].minimo = minNum;
+                usrData.inventario[idx].costoCompra = costoNum;
+                usrData.inventario[idx].ivaPorcentaje = ivaNum;
+                usrData.inventario[idx].margenPorcentaje = margenNum;
+                usrData.inventario[idx].precio = precioFinal;
             }
         } else {
-            const nuevoProd = {
+            usrData.inventario.unshift({
                 id: "prod_" + Date.now(),
                 codigo: codigo,
                 nombre: nombre,
@@ -758,63 +716,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 margenPorcentaje: margenNum,
                 precio: precioFinal,
                 lotes: [{ idLote: "lote_" + Date.now(), cantidad: stockNum, fechaVencimiento: fechaVenc }]
-            };
-            usrData.inventario.unshift(nuevoProd);
+            });
         }
 
         guardarEnStorage();
-        limpiarFormProducto();
-        renderizarTabla();
-    });
-
-    function limpiarFormProducto() {
-        prodId.value = '';
         formProducto.reset();
-        prodStock.disabled = false;
-        prodVencimiento.disabled = false;
-        tituloFormProducto.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Gestión de Producto (Costo, IVA y Margen Independientes)`;
-    }
+        prodId.value = '';
+        renderizarTabla();
+        inicializarMapaPrincipal();
+        alert("✅ Producto guardado en el stock del mapa.");
+    });
 
     function renderizarTabla() {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         if (!usrData) return;
-
-        const filtro = inputBuscar.value.toLowerCase().trim();
         tablaBody.innerHTML = '';
-        const productosFiltrados = usrData.inventario.filter(p => p.nombre.toLowerCase().includes(filtro) || p.codigo.includes(filtro));
 
-        if (productosFiltrados.length === 0) {
-            tablaBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:15px;">No hay productos registrados. Carga una factura con foto o agrégalos manualmente.</td></tr>`;
-            return;
-        }
-
-        productosFiltrados.forEach(prod => {
-            prod.lotes.sort((a, b) => new Date(a.fechaVencimiento) - new Date(b.fechaVencimiento));
-            const loteProximo = prod.lotes[0];
-            let estadoHTML = loteProximo ? `<span style="color:#16a34a;">Vence: ${loteProximo.fechaVencimiento}</span>` : `Sin lotes`;
-            let lotesDetalleHTML = prod.lotes.map(l => `<div class="detalle-lotes">• Cant: <strong>${l.cantidad}</strong> | Vence: ${l.fechaVencimiento}</div>`).join('');
-
-            const costoTexto = prod.costoCompra ? `$ ${prod.costoCompra.toLocaleString()} COP` : 'N/A';
-            const ivaMargenTexto = `IVA: ${prod.ivaPorcentaje || 19}% | Margen: ${prod.margenPorcentaje || 30}%`;
-
+        usrData.inventario.forEach(prod => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><strong>${prod.nombre}</strong><br><small style="color:#2563eb;">Ref: ${prod.codigo}</small></td>
-                <td>${prod.stock} un.</td>
-                <td style="color:#4b5563;">${costoTexto}</td>
-                <td style="font-size:0.8rem; color:#6b7280;">${ivaMargenTexto}</td>
-                <td style="font-weight:bold; color:#16a34a;">$ ${prod.precio.toLocaleString()} COP</td>
+                <td><strong>${prod.nombre}</strong><br><small style="color:#2563eb;">${prod.codigo}</small></td>
+                <td>${prod.stock}</td>
+                <td>$${prod.costoCompra.toLocaleString()}</td>
+                <td style="font-size:0.75rem;">IVA ${prod.ivaPorcentaje}% / Margen ${prod.margenPorcentaje}%</td>
+                <td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()}</td>
                 <td>
-                    <button class="btn-in" onclick="abrirModalMovimiento('${prod.id}', 'ENTRADA')"><i class="fa-solid fa-plus"></i></button>
-                    <button class="btn-out" onclick="abrirModalMovimiento('${prod.id}', 'SALIDA')"><i class="fa-solid fa-minus"></i></button>
-                    <button class="btn-edit" onclick="editarProducto('${prod.id}')"><i class="fa-solid fa-pen"></i></button>
+                    <button onclick="editarProducto('${prod.id}')" style="background:#eab308; color:#fff; border:none; padding:4px 8px; border-radius:4px;"><i class="fa-solid fa-pen"></i></button>
                 </td>
             `;
             tablaBody.appendChild(tr);
         });
     }
-
-    inputBuscar.addEventListener('input', renderizarTabla);
 
     window.editarProducto = function(id) {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
@@ -825,23 +757,9 @@ document.addEventListener('DOMContentLoaded', () => {
         prodNombre.value = prod.nombre;
         prodStock.value = prod.stock;
         prodMinimo.value = prod.minimo;
-        prodCosto.value = prod.costoCompra || 0;
-        prodIva.value = prod.ivaPorcentaje || 19;
-        prodMargen.value = prod.margenPorcentaje || 30;
-        prodStock.disabled = true;
-        prodVencimiento.disabled = true;
-        tituloFormProducto.innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Modificar Producto e Impuestos`;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    window.abrirModalMovimiento = function(id, tipo) {
-        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
-        const prod = usrData.inventario.find(p => p.id === id);
-        if (!prod) return;
-        document.getElementById('mov-prod-id').value = prod.id;
-        document.getElementById('mov-tipo').value = tipo;
-        document.getElementById('mov-prod-nombre').value = prod.nombre;
-        document.getElementById('modal-movimiento').classList.remove('hidden');
+        prodCosto.value = prod.costoCompra;
+        prodIva.value = prod.ivaPorcentaje;
+        prodMargen.value = prod.margenPorcentaje;
     };
 
     if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
