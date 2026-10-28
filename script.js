@@ -7,7 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
         "Montería": { lat: 8.7479, lng: -75.8814 }
     };
 
-    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v8')) || {
+    // LLAVE ÚNICA GLOBAL: Garantiza que nunca se borren las empresas y se acumulen permanentemente
+    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_global')) || {
         "distribuidora_ubate": {
             password: "Admin123*",
             ciudad: "Ubaté",
@@ -33,9 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v8') || null;
+    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_global') || null;
     let modoOnline = true;
-    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v8')) || [];
+    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_global')) || [];
     let mapaPrincipal = null;
     let mapaRegistro = null;
     let marcadorRegistro = null;
@@ -108,8 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tablaReportesBody = document.getElementById('tabla-reportes-body');
 
     function guardarEnStorage() {
-        localStorage.setItem('bd_logistica_ubate_v8', JSON.stringify(baseDeDatosUsuarios));
-        localStorage.setItem('cola_sync_ubate_v8', JSON.stringify(colaSincronizacion));
+        localStorage.setItem('bd_logistica_ubate_global', JSON.stringify(baseDeDatosUsuarios));
+        localStorage.setItem('cola_sync_ubate_global', JSON.stringify(colaSincronizacion));
     }
 
     function mostrarMensaje(msg, tipo) {
@@ -173,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inicializarMapaRegistro();
     });
 
-    // === REGISTRO DE EMPRESA ===
+    // === REGISTRO DE NUEVA EMPRESA (ACUMULATIVO) ===
     formRegister.addEventListener('submit', (e) => {
         e.preventDefault();
         const nuevoUsuario = document.getElementById('reg-usuario').value.trim();
@@ -236,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (baseDeDatosUsuarios[usr] && baseDeDatosUsuarios[usr].password === pass) {
             usuarioSesionActiva = usr;
-            localStorage.setItem('sesion_activa_ubate_v8', usr);
+            localStorage.setItem('sesion_activa_ubate_global', usr);
             iniciarApp();
         } else {
             mostrarMensaje("Usuario o contraseña incorrectos.", "error");
@@ -245,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnLogout.addEventListener('click', () => {
         usuarioSesionActiva = null;
-        localStorage.removeItem('sesion_activa_ubate_v8');
+        localStorage.removeItem('sesion_activa_ubate_global');
         pantallaApp.classList.add('hidden');
         pantallaLogin.classList.remove('hidden');
         formLogin.reset();
@@ -305,7 +306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // === MAPA GENERAL CON LOS LOGOS E IMÁGENES DE CADA EMPRESA ===
+    // === MAPA GENERAL CON TODAS LAS EMPRESAS ACUMULADAS Y SUS LOGOS ===
     function inicializarMapaPrincipal() {
         setTimeout(() => {
             const dataUsuarioActual = baseDeDatosUsuarios[usuarioSesionActiva];
@@ -329,6 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            // Recorre TODAS las empresas guardadas en la base global para mostrarlas juntas
             Object.keys(baseDeDatosUsuarios).forEach(usr => {
                 const dataUsr = baseDeDatosUsuarios[usr];
                 const lat = dataUsr.lat || 5.3114;
@@ -617,6 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderizarTabla();
     });
 
+    // Auto-login si ya había una sesión activa en este dispositivo
     if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
         iniciarApp();
     }
