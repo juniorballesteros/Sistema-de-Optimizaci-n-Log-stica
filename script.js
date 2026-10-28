@@ -31,8 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
         "Pereira": { lat: 4.8133, lng: -75.6961 }
     };
 
-    // LLAVE ÚNICA GLOBAL ACUMULATIVA
-    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_global')) || {
+    // LLAVE ÚNICA PERMANENTE (Soporta múltiples aperturas y cierres)
+    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v2026')) || {
         "distribuidora_ubate": {
             password: "Admin123*",
             departamento: "Cundinamarca",
@@ -59,9 +59,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_global') || null;
+    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026') || null;
     let modoOnline = true;
-    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_global')) || [];
+    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v2026')) || [];
     let mapaPrincipal = null;
     let mapaRegistro = null;
     let marcadorRegistro = null;
@@ -131,8 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCerrarModal = document.getElementById('btn-cerrar-modal');
 
     function guardarEnStorage() {
-        localStorage.setItem('bd_logistica_ubate_global', JSON.stringify(baseDeDatosUsuarios));
-        localStorage.setItem('cola_sync_ubate_global', JSON.stringify(colaSincronizacion));
+        localStorage.setItem('bd_logistica_ubate_v2026', JSON.stringify(baseDeDatosUsuarios));
+        localStorage.setItem('cola_sync_ubate_v2026', JSON.stringify(colaSincronizacion));
     }
 
     function mostrarMensaje(msg, tipo) {
@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mensajeAuth.classList.remove('hidden');
     }
 
-    // === GESTIÓN DE SELECTORES DINÁMICOS DE COLOMBIA ===
+    // === GESTIÓN DE SELECTORES DINÁMICOS ===
     function configurarSelectores(selectDepto, selectMun) {
         selectDepto.addEventListener('change', () => {
             const depto = selectDepto.value;
@@ -215,10 +215,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // === REGISTRO DE EMPRESA (ACUMULATIVO) ===
+    // === REGISTRO DE EMPRESA NORMALIZADO ===
     formRegister.addEventListener('submit', (e) => {
         e.preventDefault();
-        const nuevoUsuario = document.getElementById('reg-usuario').value.trim();
+        // Normalización para evitar fallos de mayúsculas/minúsculas/espacios
+        const usuarioInput = document.getElementById('reg-usuario').value;
+        const nuevoUsuarioKey = usuarioInput.trim().toLowerCase();
+        
         const nuevoDepto = regDepartamento.value;
         const nuevaCiudad = regCiudad.value;
         const nuevaDireccion = document.getElementById('reg-direccion').value.trim();
@@ -227,14 +230,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const lat = parseFloat(regLat.value);
         const lng = parseFloat(regLng.value);
 
-        if (!nuevoUsuario || !nuevaPassword || !nuevaDireccion || !nuevoDepto || !nuevaCiudad) return;
+        if (!nuevoUsuarioKey || !nuevaPassword || !nuevaDireccion || !nuevoDepto || !nuevaCiudad) return;
 
         if (isNaN(lat) || isNaN(lng)) {
             alert("⚠️ Por favor haz clic en el mapa de registro para seleccionar la ubicación exacta de tu empresa.");
             return;
         }
 
-        if (baseDeDatosUsuarios[nuevoUsuario]) {
+        if (baseDeDatosUsuarios[nuevoUsuarioKey]) {
             mostrarMensaje("El nombre de la empresa ya existe. Elige otro.", "error");
             return;
         }
@@ -245,7 +248,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        baseDeDatosUsuarios[nuevoUsuario] = {
+        baseDeDatosUsuarios[nuevoUsuarioKey] = {
+            nombreOriginal: usuarioInput.trim(),
             password: nuevaPassword,
             departamento: nuevoDepto,
             ciudad: nuevaCiudad,
@@ -269,18 +273,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setTimeout(() => {
             tabLogin.click();
-            document.getElementById('usuario').value = nuevoUsuario;
+            document.getElementById('usuario').value = usuarioInput.trim();
         }, 1500);
     });
 
+    // === INICIO DE SESIÓN NORMALIZADO ===
     formLogin.addEventListener('submit', (e) => {
         e.preventDefault();
-        const usr = document.getElementById('usuario').value.trim();
+        const usuarioInput = document.getElementById('usuario').value.trim();
+        const usrKey = usuarioInput.toLowerCase();
         const pass = document.getElementById('password').value.trim();
 
-        if (baseDeDatosUsuarios[usr] && baseDeDatosUsuarios[usr].password === pass) {
-            usuarioSesionActiva = usr;
-            localStorage.setItem('sesion_activa_ubate_global', usr);
+        if (baseDeDatosUsuarios[usrKey] && baseDeDatosUsuarios[usrKey].password === pass) {
+            usuarioSesionActiva = usrKey;
+            localStorage.setItem('sesion_activa_ubate_v2026', usrKey);
             iniciarApp();
         } else {
             mostrarMensaje("Usuario o contraseña incorrectos.", "error");
@@ -289,20 +295,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnLogout.addEventListener('click', () => {
         usuarioSesionActiva = null;
-        localStorage.removeItem('sesion_activa_ubate_global');
+        localStorage.removeItem('sesion_activa_ubate_v2026');
         pantallaApp.classList.add('hidden');
         pantallaLogin.classList.remove('hidden');
         formLogin.reset();
         mensajeAuth.classList.add('hidden');
     });
 
-    // === GESTIÓN DEL PERFIL DE LA EMPRESA (EDITAR) ===
+    // === EDITAR PERFIL ===
     btnEditarPerfil.addEventListener('click', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         if (!usrData) return;
 
         perfilDepartamento.value = usrData.departamento || "Cundinamarca";
-        // Disparar evento para poblar municipios
         perfilDepartamento.dispatchEvent(new Event('change'));
         perfilCiudad.value = usrData.ciudad || "Ubaté";
         perfilDireccion.value = usrData.direccion || "";
@@ -332,8 +337,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function iniciarApp() {
         pantallaLogin.classList.add('hidden');
         pantallaApp.classList.remove('hidden');
-        nombreUsuarioActivo.textContent = usuarioSesionActiva;
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        nombreUsuarioActivo.textContent = usrData.nombreOriginal || usuarioSesionActiva;
         lblCiudadUsuario.textContent = `${usrData.ciudad || "Ubaté"}, ${usrData.departamento || "Cundinamarca"}`;
         actualizarEstadoRed();
         renderizarTabla();
@@ -354,7 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // === MAPA GENERAL NACIONAL ACUMULATIVO ===
+    // === MAPA GENERAL ===
     function inicializarMapaPrincipal() {
         setTimeout(() => {
             const dataUsuarioActual = baseDeDatosUsuarios[usuarioSesionActiva];
@@ -378,8 +383,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            Object.keys(baseDeDatosUsuarios).forEach(usr => {
-                const dataUsr = baseDeDatosUsuarios[usr];
+            Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
+                const dataUsr = baseDeDatosUsuarios[usrKey];
                 const lat = dataUsr.lat || 5.3114;
                 const lng = dataUsr.lng || -73.8169;
                 const depto = dataUsr.departamento || "Cundinamarca";
@@ -387,15 +392,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const direccion = dataUsr.direccion || "Ubicación sede";
                 const logo = dataUsr.logo || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
                 const totalProd = dataUsr.inventario ? dataUsr.inventario.length : 0;
+                const nombreMostrar = dataUsr.nombreOriginal || usrKey;
 
-                const esUsuarioActual = (usr === usuarioSesionActiva);
+                const esUsuarioActual = (usrKey === usuarioSesionActiva);
                 const marker = L.marker([lat, lng]).addTo(mapaPrincipal);
 
                 marker.bindPopup(`
                     <div style="font-family:sans-serif; text-align:center;">
                         <img src="${logo}" alt="Logo" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #dc2626; margin-bottom:5px;"><br>
                         <strong style="color:${esUsuarioActual ? '#dc2626' : '#2563eb'}; font-size:1rem;">
-                            ${usr.toUpperCase()} ${esUsuarioActual ? '(Tu Empresa)' : ''}
+                            ${nombreMostrar.toUpperCase()} ${esUsuarioActual ? '(Tu Empresa)' : ''}
                         </strong><br>
                         <p style="margin:4px 0; font-size:0.85rem;">Ubicación: <strong>${ciudad}, ${depto}</strong></p>
                         <p style="margin:4px 0; font-size:0.85rem;">Ref: ${direccion}</p>
@@ -412,8 +418,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function poblarSelectorComparador() {
         const productosUnicos = new Set();
-        Object.keys(baseDeDatosUsuarios).forEach(usr => {
-            baseDeDatosUsuarios[usr].inventario.forEach(p => productosUnicos.add(p.nombre));
+        Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
+            baseDeDatosUsuarios[usrKey].inventario.forEach(p => productosUnicos.add(p.nombre));
         });
 
         selectProductoComparar.innerHTML = '';
@@ -449,16 +455,17 @@ document.addEventListener('DOMContentLoaded', () => {
         let mejorPrecio = Infinity;
         let mejorSede = "";
 
-        Object.keys(baseDeDatosUsuarios).forEach(usr => {
-            const dataUsr = baseDeDatosUsuarios[usr];
+        Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
+            const dataUsr = baseDeDatosUsuarios[usrKey];
             const prodEnSede = dataUsr.inventario.find(p => p.nombre === productoSeleccionado);
             const logo = dataUsr.logo || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
+            const nombreMostrar = dataUsr.nombreOriginal || usrKey;
 
             if (prodEnSede) {
                 encontrado = true;
                 if (prodEnSede.precio < mejorPrecio) {
                     mejorPrecio = prodEnSede.precio;
-                    mejorSede = `${usr} (${dataUsr.ciudad}, ${dataUsr.departamento})`;
+                    mejorSede = `${nombreMostrar} (${dataUsr.ciudad}, ${dataUsr.departamento})`;
                 }
 
                 comparativaHTML += `
@@ -466,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>
                             <div style="display:flex; align-items:center; gap:8px;">
                                 <img src="${logo}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #d1d5db;">
-                                <strong>${usr}</strong>
+                                <strong>${nombreMostrar}</strong>
                             </div>
                         </td>
                         <td><strong>${dataUsr.ciudad} (${dataUsr.departamento})</strong><br><small style="color:#6b7280;">${dataUsr.direccion}</small></td>
@@ -502,12 +509,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function actualizarEstadoRed() {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         const ubicacion = usrData ? `${usrData.ciudad}, ${usrData.departamento}` : "Colombia";
+        const nombreMostrar = usrData ? (usrData.nombreOriginal || usuarioSesionActiva) : usuarioSesionActiva;
+        
         if (modoOnline) {
             estadoConexion.className = "badge";
-            estadoConexion.innerHTML = `<i class="fa-solid fa-wifi"></i> Online | <strong>${usuarioSesionActiva}</strong> (${ubicacion})`;
+            estadoConexion.innerHTML = `<i class="fa-solid fa-wifi"></i> Online | <strong>${nombreMostrar}</strong> (${ubicacion})`;
         } else {
             estadoConexion.className = "badge offline";
-            estadoConexion.innerHTML = `<i class="fa-solid fa-ban"></i> Offline | <strong>${usuarioSesionActiva}</strong> (${ubicacion})`;
+            estadoConexion.innerHTML = `<i class="fa-solid fa-ban"></i> Offline | <strong>${nombreMostrar}</strong> (${ubicacion})`;
         }
     }
 
@@ -669,6 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderizarTabla();
     });
 
+    // Auto-login persistente
     if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
         iniciarApp();
     }
