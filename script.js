@@ -90,6 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026') || null;
     let modoOnline = true;
     let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v2026')) || [];
+    let productosDetectadosTemporal = []; // Almacena los ítems leídos por OCR para auditar antes de guardar
+
     let mapaPrincipal = null;
     let mapaRegistro = null;
     let marcadorRegistro = null;
@@ -135,6 +137,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputFotoFactura = document.getElementById('input-foto-factura');
     const btnProcesarOCR = document.getElementById('btn-procesar-ocr');
     const estadoOCR = document.getElementById('estado-ocr');
+
+    const modalAuditoriaFactura = document.getElementById('modal-auditoria-factura');
+    const tablaAuditoriaBody = document.getElementById('tabla-auditoria-body');
+    const btnCerrarAuditoria = document.getElementById('btn-cerrar-auditoria');
+    const btnCancelarAuditoria = document.getElementById('btn-cancelar-auditoria');
+    const btnConfirmarIngresoFactura = document.getElementById('btn-confirmar-ingreso-factura');
 
     const formProducto = document.getElementById('form-producto');
     const prodId = document.getElementById('prod-id');
@@ -307,17 +315,16 @@ document.addEventListener('DOMContentLoaded', () => {
         mensajeAuth.classList.add('hidden');
     });
 
-    // MÓDULO OCR: LECTURA ESTRICTA DE LA FOTO DE LA FACTURA
+    // MÓDULO OCR: ESCANEO Y APERTURA DE VENTANA DE PRE-REVISIÓN
     btnProcesarOCR.addEventListener('click', async () => {
         const archivo = inputFotoFactura.files[0];
-        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
-
         if (!archivo) {
             alert("⚠️ Por favor selecciona o tómale una foto a la factura antes de procesarla.");
             return;
         }
 
-        estadoOCR.innerHTML = "⏳ Analizando la factura con OCR... Leyendo productos y precios de la imagen...";
+        estadoOCR.innerHTML = "⏳ Escaneando factura con OCR... Extrayendo nombres, cantidades y costos...";
+        productosDetectadosTemporal = [];
 
         try {
             const result = await Tesseract.recognize(archivo, 'spa', {
@@ -332,57 +339,107 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log("Texto extraído de la factura:", textoExtraido);
 
             const lineas = textoExtraido.split('\n');
-            let productosIngresados = 0;
 
-            lineas.forEach(linea => {
+            lineas.forEach((linea, index) => {
                 const numeros = linea.match(/\d+/g);
                 if (numeros && numeros.length >= 1) {
                     const costoBase = parseInt(numeros[numeros.length - 1]);
                     const cantidad = numeros.length >= 2 ? parseInt(numeros[numeros.length - 2]) : 1;
                     let descripcion = linea.replace(/[0-9]/g, '').trim();
 
-                    // Filtros estrictos para ignorar basura (NIT, teléfonos, totales, etc.)
+                    // Limpieza estricta de encabezados y pies de factura
                     const textoMin = descripcion.toLowerCase();
-                    const esBasura = textoMin.includes('nit') || textoMin.includes('total') || textoMin.includes('subtotal') || textoMin.includes('iva') || textoMin.includes('dire_') || textoMin.includes('tel');
+                    const esBasura = textoMin.includes('nit') || textoMin.includes('total') || textoMin.includes('subtotal') || textoMin.includes('iva') || textoMin.includes('direccion') || textoMin.includes('tel') || textoMin.includes('factura');
 
                     if (descripcion.length > 3 && costoBase > 500 && !esBasura) {
-                        const ivaProd = 19; // IVA por defecto
-                        const margenProd = 30; // Margen por defecto
-                        const precioFinalVenta = Math.round((costoBase * (1 + ivaProd / 100)) * (1 + margenProd / 100));
-                        const fechaDefecto = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                        const refCode = "REF-" + Math.floor(1000 + Math.random() * 9000);
-
-                        usrData.inventario.unshift({
-                            id: "prod_" + Date.now() + Math.random().toString(36).substring(2, 6),
-                            codigo: refCode,
+                        productosDetectadosTemporal.push({
+                            idTemp: index,
                             nombre: descripcion,
-                            stock: cantidad,
-                            minimo: 5,
-                            costoCompra: costoBase,
-                            ivaPorcentaje: ivaProd,
-                            margenPorcentaje: margenProd,
-                            precio: precioFinalVenta,
-                            lotes: [{ idLote: "lote_" + Date.now(), cantidad: cantidad, fechaVencimiento: fechaDefecto }]
+                            cantidad: cantidad > 0 ? cantidad : 1,
+                            costo: costoBase,
+                            iva: 19,
+                            margen: 30
                         });
-                        productosIngresados++;
                     }
                 }
             });
 
-            // VALIDACIÓN ESTRICTA: SI LA FOTO NO FUE LEGIBLE O NO ARROJÓ PRODUCTOS VÁLIDOS
-            if (productosIngresados > 0) {
-                guardarEnStorage();
-                renderizarTabla();
-                estadoOCR.innerHTML = `✅ <strong>¡Éxito!</strong> Se leyeron e integraron <strong>${productosIngresados} productos</strong> reales de la foto de la factura.`;
-                inputFotoFactura.value = ''; // Limpiar input
+            if (productosDetectadosTemporal.length > 0) {
+                estadoOCR.innerHTML = `✅ ¡Escaneo completado! Se detectaron ${productosDetectadosTemporal.length} ítems. Revisa y confirma los datos en la ventana emergente.`;
+                abrirModalAuditoria();
             } else {
-                estadoOCR.innerHTML = `⚠️ <strong>Factura no legible o borrosa:</strong> No se pudieron extraer productos claros de esta foto. Por favor, <strong>toma la foto con mejor iluminación, más cerca y con mayor nitidez</strong> para que la aplicación pueda leerla correctamente.`;
+                estadoOCR.innerHTML = `⚠️ <strong>Factura no legible:</strong> No se detectaron productos claros. Por favor, <strong>toma una foto más nítida y con mejor iluminación</strong> o ingresa el producto manualmente abajo.`;
             }
 
         } catch (err) {
             console.error(err);
-            estadoOCR.innerHTML = `⚠️ <strong>Error de lectura:</strong> Ocurrió un problema procesando la imagen. Por favor asegúrate de que la foto tenga buena nitidez e inténtalo nuevamente.`;
+            estadoOCR.innerHTML = `⚠️ <strong>Error en OCR:</strong> No se pudo procesar la imagen. Inténtalo de nuevo con otra foto.`;
         }
+    });
+
+    function abrirModalAuditoria() {
+        tablaAuditoriaBody.innerHTML = '';
+        productosDetectadosTemporal.forEach((prod, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><input type="text" value="${prod.nombre}" id="aud-nombre-${idx}" style="width:100%; padding:4px;"></td>
+                <td><input type="number" value="${prod.cantidad}" min="1" id="aud-cant-${idx}" style="width:70px; padding:4px;"></td>
+                <td><input type="number" value="${prod.costo}" min="0" id="aud-costo-${idx}" style="width:100px; padding:4px;"></td>
+                <td>
+                    <select id="aud-iva-${idx}" style="padding:4px;">
+                        <option value="0" ${prod.iva === 0 ? 'selected' : ''}>0%</option>
+                        <option value="5" ${prod.iva === 5 ? 'selected' : ''}>5%</option>
+                        <option value="19" ${prod.iva === 19 ? 'selected' : ''}>19%</option>
+                    </select>
+                </td>
+                <td><input type="number" value="${prod.margen}" min="0" id="aud-margen-${idx}" style="width:70px; padding:4px;"></td>
+            `;
+            tablaAuditoriaBody.appendChild(tr);
+        });
+        modalAuditoriaFactura.classList.remove('hidden');
+    }
+
+    btnCerrarAuditoria.addEventListener('click', () => modalAuditoriaFactura.classList.add('hidden'));
+    btnCancelarAuditoria.addEventListener('click', () => modalAuditoriaFactura.classList.add('hidden'));
+
+    // CONFIRMAR DATOS EDITADOS EN LA VENTANA DE PRE-REVISIÓN
+    btnConfirmarIngresoFactura.addEventListener('click', () => {
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        let ingresados = 0;
+
+        productosDetectadosTemporal.forEach((prod, idx) => {
+            const nombreCorregido = document.getElementById(`aud-nombre-${idx}`).value.trim();
+            const cantidadCorregida = parseInt(document.getElementById(`aud-cant-${idx}`).value) || 1;
+            const costoCorregido = parseInt(document.getElementById(`aud-costo-${idx}`).value) || 0;
+            const ivaCorregido = parseFloat(document.getElementById(`aud-iva-${idx}`).value);
+            const margenCorregido = parseFloat(document.getElementById(`aud-margen-${idx}`).value);
+
+            if (nombreCorregido && costoCorregido > 0) {
+                const precioFinal = Math.round((costoCorregido * (1 + ivaCorregido / 100)) * (1 + margenCorregido / 100));
+                const fechaDefecto = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                const refCode = "REF-" + Math.floor(1000 + Math.random() * 9000);
+
+                usrData.inventario.unshift({
+                    id: "prod_" + Date.now() + "_" + idx,
+                    codigo: refCode,
+                    nombre: nombreCorregido,
+                    stock: cantidadCorregida,
+                    minimo: 5,
+                    costoCompra: costoCorregido,
+                    ivaPorcentaje: ivaCorregido,
+                    margenPorcentaje: margenCorregido,
+                    precio: precioFinal,
+                    lotes: [{ idLote: "lote_" + Date.now(), cantidad: cantidadCorregida, fechaVencimiento: fechaDefecto }]
+                });
+                ingresados++;
+            }
+        });
+
+        guardarEnStorage();
+        renderizarTabla();
+        modalAuditoriaFactura.classList.add('hidden');
+        inputFotoFactura.value = '';
+        estadoOCR.innerHTML = `✅ <strong>¡Inventario actualizado!</strong> Se ingresaron oficialmente <strong>${ingresados} productos auditados</strong> con sus precios de venta calculados y publicados en el mapa.`;
     });
 
     function iniciarApp() {
