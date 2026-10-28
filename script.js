@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026') || null;
     let modoOnline = true;
     let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v2026')) || [];
-    let productosDetectadosTemporal = []; // Almacena los ítems leídos por OCR para auditar antes de guardar
+    let productosDetectadosTemporal = [];
 
     let mapaPrincipal = null;
     let mapaRegistro = null;
@@ -347,7 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const cantidad = numeros.length >= 2 ? parseInt(numeros[numeros.length - 2]) : 1;
                     let descripcion = linea.replace(/[0-9]/g, '').trim();
 
-                    // Limpieza estricta de encabezados y pies de factura
                     const textoMin = descripcion.toLowerCase();
                     const esBasura = textoMin.includes('nit') || textoMin.includes('total') || textoMin.includes('subtotal') || textoMin.includes('iva') || textoMin.includes('direccion') || textoMin.includes('tel') || textoMin.includes('factura');
 
@@ -498,23 +497,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ciudad = dataUsr.ciudad || "Ubaté";
                 const direccion = dataUsr.direccion || "Ubicación sede";
                 const logo = dataUsr.logo || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
-                const totalProd = dataUsr.inventario ? dataUsr.inventario.length : 0;
                 const nombreMostrar = dataUsr.nombreOriginal || usrKey;
-
                 const esUsuarioActual = (usrKey === usuarioSesionActiva);
+
+                let listaProductosHTML = "";
+                if (dataUsr.inventario && dataUsr.inventario.length > 0) {
+                    listaProductosHTML = `
+                        <div style="max-height: 140px; overflow-y: auto; text-align: left; margin-top: 8px; border-top: 1px solid #e5e7eb; padding-top: 6px;">
+                            <strong style="font-size:0.8rem; color:#1f2937;">📦 Inventario y Precios de Venta:</strong>
+                            <ul style="margin: 4px 0 0 15px; padding: 0; font-size: 0.75rem; color: #4b5563;">
+                    `;
+                    dataUsr.inventario.forEach(prod => {
+                        const precioFmt = prod.precio ? prod.precio.toLocaleString() : '0';
+                        listaProductosHTML += `<li style="margin-bottom: 3px;"><strong>${prod.nombre}</strong> (${prod.stock} un.) $\u00A0<strong>${precioFmt} COP</strong></li>`;
+                    });
+                    listaProductosHTML += `</ul></div>`;
+                } else {
+                    listaProductosHTML = `<p style="margin: 6px 0 0 0; font-size: 0.75rem; color: #dc2626;">Sin productos registrados.</p>`;
+                }
+
                 const marker = L.marker([lat, lng]).addTo(mapaPrincipal);
 
                 marker.bindPopup(`
-                    <div style="font-family:sans-serif; text-align:center;">
-                        <img src="${logo}" alt="Logo" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #dc2626; margin-bottom:5px;"><br>
-                        <strong style="color:${esUsuarioActual ? '#dc2626' : '#2563eb'}; font-size:1rem;">
+                    <div style="font-family: sans-serif; text-align: center; width: 220px;">
+                        <img src="${logo}" alt="Logo" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #dc2626; margin-bottom: 4px;"><br>
+                        <strong style="color: ${esUsuarioActual ? '#dc2626' : '#2563eb'}; font-size: 0.95rem;">
                             ${nombreMostrar.toUpperCase()} ${esUsuarioActual ? '(Tu Empresa)' : ''}
                         </strong><br>
-                        <p style="margin:4px 0; font-size:0.85rem;">Ubicación: <strong>${ciudad}, ${depto}</strong></p>
-                        <p style="margin:4px 0; font-size:0.85rem;">Ref: ${direccion}</p>
-                        <p style="margin:0; font-size:0.85rem; font-weight:bold; color:#16a34a;">Productos: ${totalProd}</p>
+                        <span style="font-size: 0.8rem; color: #4b5563;">📍 ${ciudad}, ${depto}</span><br>
+                        <span style="font-size: 0.75rem; color: #6b7280;">Ref: ${direccion}</span>
+                        ${listaProductosHTML}
                     </div>
-                `);
+                `, { maxWidth: 260 });
 
                 if (esUsuarioActual) {
                     marker.openPopup();
