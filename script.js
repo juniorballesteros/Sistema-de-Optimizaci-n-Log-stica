@@ -188,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         convertirImagenABase64(regLogoFile, base64 => {
             if (base64) {
                 logoBase64Registro = base64;
-                previewRegLogo.innerHTML = `<img src="${base64}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #16a34a;">`;
+                previewRegLogo.innerHTML = `<img src="${base64}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #dc2626;">`;
             }
         });
     });
@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', () => {
         convertirImagenABase64(perfilLogoFile, base64 => {
             if (base64) {
                 logoBase64Perfil = base64;
-                previewPerfilLogo.innerHTML = `<img src="${base64}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #2563eb;">`;
+                previewPerfilLogo.innerHTML = `<img src="${base64}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #dc2626;">`;
             }
         });
     });
@@ -321,7 +321,6 @@ document.addEventListener('DOMContentLoaded', () => {
         pantallaLogin.classList.remove('hidden');
     });
 
-    // INICIALIZACIÓN APP ESTILO GOOGLE MAPS
     function iniciarApp() {
         pantallaLogin.classList.add('hidden');
         pantallaApp.classList.remove('hidden');
@@ -377,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const customIcon = L.divIcon({
                 className: 'custom-map-pin',
-                html: `<div style="width:38px; height:38px; border-radius:50%; border:3px solid ${esActual ? '#16a34a' : '#1a73e8'}; overflow:hidden; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);"><img src="${logo}" style="width:100%; height:100%; object-fit:cover;"></div>`,
+                html: `<div style="width:38px; height:38px; border-radius:50%; border:3px solid ${esActual ? '#16a34a' : '#dc2626'}; overflow:hidden; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);"><img src="${logo}" style="width:100%; height:100%; object-fit:cover;"></div>`,
                 iconSize: [38, 38],
                 iconAnchor: [19, 19]
             });
@@ -385,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapaPrincipal);
             marker.bindPopup(`
                 <div style="font-family:sans-serif; text-align:center; width:210px;">
-                    <strong style="color:${esActual ? '#16a34a' : '#1a73e8'}; font-size:0.9rem;">${nombreMostrar.toUpperCase()} ${esActual ? '(Tu Distribuidora)' : ''}</strong><br>
+                    <strong style="color:${esActual ? '#16a34a' : '#dc2626'}; font-size:0.9rem;">${nombreMostrar.toUpperCase()} ${esActual ? '(Tu Distribuidora)' : ''}</strong><br>
                     <span style="font-size:0.75rem; color:#64748b;">📍 ${dataUsr.ciudad}, ${dataUsr.departamento}</span><br>
                     <span style="font-size:0.72rem; color:#94a3b8;">${dataUsr.direccion}</span>
                     ${listaProductosHTML}
@@ -396,7 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // NAVEGACIÓN BOTTOM BAR Y CHIPS
     function activarTab(tabName) {
         navExplorar.classList.remove('active');
         navMisProductos.classList.remove('active');
@@ -452,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
     chipRedToggle.addEventListener('click', () => {
         modoOnline = !modoOnline;
         lblEstadoRed.textContent = modoOnline ? "Online" : "Offline";
-        chipRedToggle.style.color = modoOnline ? "#1a73e8" : "#dc2626";
+        chipRedToggle.style.color = modoOnline ? "#dc2626" : "#475569";
     });
 
     btnPerfilAvatar.addEventListener('click', () => abrirModalPerfil());
@@ -491,7 +489,6 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("✅ Datos de la distribuidora actualizados.");
     });
 
-    // ESCANEO OCR FACTURA CON VENTANA DE PRE-REVISIÓN
     btnProcesarOCR.addEventListener('click', async () => {
         const archivo = inputFotoFactura.files[0];
         if (!archivo) {
@@ -613,7 +610,6 @@ document.addEventListener('DOMContentLoaded', () => {
         estadoOCR.innerHTML = `✅ ¡Ingresados ${ingresados} productos al stock del mapa!`;
     });
 
-    // BUSCADOR EN EL MAPA
     inputBuscarMapa.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
         if (!query) return;
@@ -735,7 +731,7 @@ document.addEventListener('DOMContentLoaded', () => {
         usrData.inventario.forEach(prod => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><strong>${prod.nombre}</strong><br><small style="color:#2563eb;">${prod.codigo}</small></td>
+                <td><strong>${prod.nombre}</strong><br><small style="color:#dc2626;">${prod.codigo}</small></td>
                 <td>${prod.stock}</td>
                 <td>$${prod.costoCompra.toLocaleString()}</td>
                 <td style="font-size:0.75rem;">IVA ${prod.ivaPorcentaje}% / Margen ${prod.margenPorcentaje}%</td>
