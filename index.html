@@ -148,10 +148,11 @@
                 </div>
             </div>
 
-            <!-- CHIPS DE ACCESO RÁPIDO (DINÁMICOS SEGÚN ROL) -->
+            <!-- CHIPS DE ACCESO RÁPIDO -->
             <div class="quick-chips-scroll" id="chips-container-nav">
                 <button class="chip-btn active" id="chip-mapa"><i class="fa-solid fa-map"></i> Mapa Logístico</button>
                 <button class="chip-btn" id="chip-mis-productos"><i class="fa-solid fa-boxes-stacked"></i> <span id="lbl-btn-gestion">Inventario</span></button>
+                <button class="chip-btn" id="chip-pedir-flete"><i class="fa-solid fa-truck-fast"></i> Pedir Flete Libre</button>
                 <button class="chip-btn" id="chip-comparar"><i class="fa-solid fa-scale-balanced"></i> Comparar Precios</button>
                 <button class="chip-btn" id="chip-red-toggle"><i class="fa-solid fa-wifi"></i> <span id="lbl-estado-red">Online</span></button>
             </div>
@@ -163,7 +164,7 @@
             <button id="btn-logout-fab" class="fab-btn fab-danger" title="Cerrar Sesión"><i class="fa-solid fa-power-off"></i></button>
         </div>
 
-        <!-- HOJA DESLIZABLE INFERIOR: GESTIÓN EMPRESA O BOLSA DE CONDUCTOR -->
+        <!-- HOJA DESLIZABLE INFERIOR: GESTIÓN EMPRESA / BOLSA CONDUCTOR -->
         <div id="sheet-productos" class="sliding-sheet hidden">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
@@ -176,11 +177,69 @@
             </div>
         </div>
 
-        <!-- HOJA DESLIZABLE INFERIOR: COMPARADOR (SOLO EMPRESAS) -->
+        <!-- HOJA DESLIZABLE INFERIOR: PEDIR FLETE LIBRE (EMPRESAS) -->
+        <div id="sheet-pedir-flete" class="sliding-sheet hidden">
+            <div class="sheet-handle"></div>
+            <div class="sheet-header">
+                <h3><i class="fa-solid fa-truck-fast"></i> Solicitar Flete (Ruta Libre)</h3>
+                <button class="btn-close-sheet" id="btn-cerrar-flete-lib">&times;</button>
+            </div>
+            <div class="sheet-content">
+                <form id="form-pedir-flete-libre">
+                    <div class="input-group">
+                        <label for="flete-origen">Ciudad de Origen (Retiro de Carga):</label>
+                        <select id="flete-origen" required>
+                            <option value="">Seleccione...</option>
+                            <option value="Ubaté">Ubaté</option>
+                            <option value="Bogotá D.C.">Bogotá D.C.</option>
+                            <option value="Zipaquirá">Zipaquirá</option>
+                            <option value="Chocontá">Chocontá</option>
+                            <option value="Tunja">Tunja</option>
+                            <option value="Medellín">Medellín</option>
+                            <option value="Cali">Cali</option>
+                            <option value="Bucaramanga">Bucaramanga</option>
+                            <option value="Villavicencio">Villavicencio</option>
+                            <option value="Barranquilla">Barranquilla</option>
+                            <option value="Montería">Montería</option>
+                            <option value="Pereira">Pereira</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="flete-destino">Ciudad de Destino (Entrega):</label>
+                        <select id="flete-destino" required>
+                            <option value="">Seleccione...</option>
+                            <option value="Ubaté">Ubaté</option>
+                            <option value="Bogotá D.C.">Bogotá D.C.</option>
+                            <option value="Zipaquirá">Zipaquirá</option>
+                            <option value="Chocontá">Chocontá</option>
+                            <option value="Tunja">Tunja</option>
+                            <option value="Medellín">Medellín</option>
+                            <option value="Cali">Cali</option>
+                            <option value="Bucaramanga">Bucaramanga</option>
+                            <option value="Villavicencio">Villavicencio</option>
+                            <option value="Barranquilla">Barranquilla</option>
+                            <option value="Montería">Montería</option>
+                            <option value="Pereira">Pereira</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label for="flete-detalles">Descripción Breve o Notas de Carga:</label>
+                        <input type="text" id="flete-detalles" placeholder="Ej. Carga general / Carga pesada / 2 Toneladas" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="margin-top:10px;"><i class="fa-solid fa-paper-plane"></i> Publicar Solicitud a Transportadores</button>
+                </form>
+                <div id="mis-fletes-publicados" style="margin-top: 20px;">
+                    <h4>Mis Solicitudes Activas</h4>
+                    <div id="lista-mis-fletes" style="margin-top: 8px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- HOJA DESLIZABLE INFERIOR: COMPARADOR DE PRECIOS -->
         <div id="sheet-comparador" class="sliding-sheet hidden">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
-                <h3><i class="fa-solid fa-scale-balanced"></i> Comparador de Precios y Solicitud de Fletes</h3>
+                <h3><i class="fa-solid fa-scale-balanced"></i> Comparador de Precios</h3>
                 <button class="btn-close-sheet" id="btn-cerrar-comparador">&times;</button>
             </div>
             <div class="sheet-content">
@@ -192,7 +251,7 @@
             </div>
         </div>
 
-        <!-- NAVEGACIÓN INFERIOR DINÁMICA -->
+        <!-- NAVEGACIÓN INFERIOR -->
         <nav class="gmaps-bottom-nav" id="bottom-nav-container">
             <button class="nav-item active" id="nav-explorar">
                 <i class="fa-solid fa-location-dot"></i>
@@ -201,6 +260,10 @@
             <button class="nav-item" id="nav-mis-productos">
                 <i class="fa-solid fa-boxes-stacked" id="icon-nav-gestion"></i>
                 <span id="txt-nav-gestion">Inventario</span>
+            </button>
+            <button class="nav-item" id="nav-pedir-flete-tab">
+                <i class="fa-solid fa-truck-fast"></i>
+                <span>Pedir Flete</span>
             </button>
             <button class="nav-item" id="nav-comparar">
                 <i class="fa-solid fa-scale-balanced"></i>
@@ -211,6 +274,23 @@
                 <span>Mi Perfil</span>
             </button>
         </nav>
+    </div>
+
+    <!-- MODAL ESTILO UBER DE CHAT DIRECTO Y NEGOCIACIÓN -->
+    <div id="modal-chat-uber" class="modal hidden">
+        <div class="modal-content" style="max-width: 450px; display: flex; flex-direction: column; height: 500px;">
+            <div class="modal-header" style="border-bottom: 1px solid #e2e8f0; padding-bottom: 8px;">
+                <h3 id="chat-titulo-modal"><i class="fa-solid fa-comments"></i> Chat y Negociación Flete</h3>
+                <button class="btn-close" id="btn-cerrar-chat">&times;</button>
+            </div>
+            <div id="chat-mensajes-container" style="flex: 1; overflow-y: auto; padding: 12px; background: #f8fafc; display: flex; flex-direction: column; gap: 8px; margin: 8px 0; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <!-- Mensajes del chat -->
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <input type="text" id="input-mensaje-chat" placeholder="Escribe tu mensaje o tarifa acordada..." style="flex:1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; outline:none;">
+                <button id="btn-enviar-chat" class="btn-primary" style="width: auto; padding: 0 16px; margin:0;"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
     </div>
 
     <!-- MODAL DE AUDITORÍA OCR -->
