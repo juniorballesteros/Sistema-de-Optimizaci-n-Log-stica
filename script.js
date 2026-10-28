@@ -28,11 +28,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const cuentasPredeterminadas = {
         "distribuidora_ubate": {
+            rol: "empresa",
             nombreOriginal: "Distribuidora Ubaté",
             password: "Admin123*",
             departamento: "Cundinamarca",
             ciudad: "Ubaté",
-            direccion: "Carrera 4 # 5-20 (Bodega Central)",
+            direccion: "Carrera 4 # 5-20",
             logo: "https://cdn-icons-png.flaticon.com/512/2897/2897785.png",
             lat: 5.3114,
             lng: -73.8169,
@@ -51,28 +52,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             ]
         },
-        "distribuidora_bogota": {
-            nombreOriginal: "Distribuidora Bogotá D.C.",
+        "conductor_carlos": {
+            rol: "conductor",
+            nombreOriginal: "Carlos Pérez (Turbo)",
             password: "Admin123*",
             departamento: "Cundinamarca",
             ciudad: "Bogotá D.C.",
-            direccion: "Zona Industrial Calle 13",
-            logo: "https://cdn-icons-png.flaticon.com/512/2897/2897785.png",
-            lat: 4.6097,
-            lng: -74.0817,
-            inventario: [
-                {
-                    id: "prod_bog_1",
-                    codigo: "REF-102",
-                    nombre: "Queso Doble Crema 500g",
-                    stock: 120,
-                    minimo: 20,
-                    costoCompra: 7500,
-                    ivaPorcentaje: 19,
-                    margenPorcentaje: 25,
-                    precio: 10710,
-                    lotes: [{ idLote: "lote_bog_1", cantidad: 120, fechaVencimiento: "2026-12-10" }]
-                }
+            vehiculo: "Turbo Chevrolet NPR (Furgón)",
+            placa: "SXX-123",
+            logo: "https://cdn-icons-png.flaticon.com/512/2972/2972195.png",
+            lat: 4.6200,
+            lng: -74.0900,
+            viajesDisponibles: [
+                { id: "viaje_1", origen: "Bogotá D.C.", destino: "Ubaté", carga: "Queso Doble Crema (Lote 50 un.)", estado: "Disponible" }
             ]
         }
     };
@@ -101,6 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const formRegister = document.getElementById('form-register');
     const mensajeAuth = document.getElementById('mensaje-auth');
 
+    const regRol = document.getElementById('reg-rol');
+    const camposConductor = document.getElementById('campos-conductor');
+    const grupoDireccion = document.getElementById('grupo-direccion');
     const regDepartamento = document.getElementById('reg-departamento');
     const regCiudad = document.getElementById('reg-ciudad');
     const regLat = document.getElementById('reg-lat');
@@ -117,6 +112,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const navComparar = document.getElementById('nav-comparar');
     const navPerfil = document.getElementById('nav-perfil');
 
+    const iconNavGestion = document.getElementById('icon-nav-gestion');
+    const txtNavGestion = document.getElementById('txt-nav-gestion');
+    const lblBtnGestion = document.getElementById('lbl-btn-gestion');
+
     const chipMapa = document.getElementById('chip-mapa');
     const chipMisProductos = document.getElementById('chip-mis-productos');
     const chipComparar = document.getElementById('chip-comparar');
@@ -127,35 +126,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const sheetComparador = document.getElementById('sheet-comparador');
     const btnCerrarSheet = document.getElementById('btn-cerrar-sheet');
     const btnCerrarComparador = document.getElementById('btn-cerrar-comparador');
+    const sheetTituloPrincipal = document.getElementById('sheet-titulo-principal');
+    const sheetContentBody = document.getElementById('sheet-content-body');
 
     const btnMiUbicacion = document.getElementById('btn-mi-ubicacion');
     const btnLogoutFab = document.getElementById('btn-logout-fab');
-
     const inputBuscarMapa = document.getElementById('input-buscar-mapa');
     const selectProductoComparar = document.getElementById('select-producto-comparar');
     const resultadoComparacion = document.getElementById('resultado-comparacion');
-
-    const inputFotoFactura = document.getElementById('input-foto-factura');
-    const btnProcesarOCR = document.getElementById('btn-procesar-ocr');
-    const estadoOCR = document.getElementById('estado-ocr');
-
-    const modalAuditoriaFactura = document.getElementById('modal-auditoria-factura');
-    const tablaAuditoriaBody = document.getElementById('tabla-auditoria-body');
-    const btnCerrarAuditoria = document.getElementById('btn-cerrar-auditoria');
-    const btnCancelarAuditoria = document.getElementById('btn-cancelar-auditoria');
-    const btnConfirmarIngresoFactura = document.getElementById('btn-confirmar-ingreso-factura');
-
-    const formProducto = document.getElementById('form-producto');
-    const prodId = document.getElementById('prod-id');
-    const prodCodigo = document.getElementById('prod-codigo');
-    const prodNombre = document.getElementById('prod-nombre');
-    const prodStock = document.getElementById('prod-stock');
-    const prodVencimiento = document.getElementById('prod-vencimiento');
-    const prodMinimo = document.getElementById('prod-minimo');
-    const prodCosto = document.getElementById('prod-costo');
-    const prodIva = document.getElementById('prod-iva');
-    const prodMargen = document.getElementById('prod-margen');
-    const tablaBody = document.getElementById('tabla-body');
 
     const modalPerfil = document.getElementById('modal-perfil');
     const btnCerrarPerfil = document.getElementById('btn-cerrar-perfil');
@@ -175,6 +153,16 @@ document.addEventListener('DOMContentLoaded', () => {
         mensajeAuth.className = tipo;
         mensajeAuth.classList.remove('hidden');
     }
+
+    regRol.addEventListener('change', () => {
+        if (regRol.value === 'conductor') {
+            camposConductor.classList.remove('hidden');
+            grupoDireccion.style.display = 'none';
+        } else {
+            camposConductor.classList.add('hidden');
+            grupoDireccion.style.display = 'flex';
+        }
+    });
 
     function convertirImagenABase64(fileInput, callback) {
         const file = fileInput.files[0];
@@ -263,37 +251,46 @@ document.addEventListener('DOMContentLoaded', () => {
 
     formRegister.addEventListener('submit', (e) => {
         e.preventDefault();
+        const rol = regRol.value;
         const usuarioInput = document.getElementById('reg-usuario').value;
         const usrKey = usuarioInput.trim().toLowerCase();
         const depto = regDepartamento.value;
         const ciudad = regCiudad.value;
-        const dir = document.getElementById('reg-direccion').value.trim();
         const pass = document.getElementById('reg-password').value.trim();
         const lat = parseFloat(regLat.value);
         const lng = parseFloat(regLng.value);
 
         if (isNaN(lat) || isNaN(lng)) {
-            alert("⚠️ Haz clic en el mapa para seleccionar la ubicación exacta de tu bodega.");
+            alert("⚠️ Haz clic en el mapa para ubicar tu posición exacta.");
             return;
         }
 
         if (baseDeDatosUsuarios[usrKey]) {
-            mostrarMensaje("El nombre de la empresa ya existe.", "error");
+            mostrarMensaje("El nombre de usuario ya existe.", "error");
             return;
         }
 
-        baseDeDatosUsuarios[usrKey] = {
+        let nuevoUsuario = {
+            rol: rol,
             nombreOriginal: usuarioInput.trim(),
             password: pass,
             departamento: depto,
             ciudad: ciudad,
-            direccion: dir,
             logo: logoBase64Registro,
             lat: lat,
-            lng: lng,
-            inventario: []
+            lng: lng
         };
 
+        if (rol === 'conductor') {
+            nuevoUsuario.vehiculo = document.getElementById('reg-vehiculo').value;
+            nuevoUsuario.placa = document.getElementById('reg-placa').value.trim() || "SXX-000";
+            nuevoUsuario.viajesDisponibles = [];
+        } else {
+            nuevoUsuario.direccion = document.getElementById('reg-direccion').value.trim();
+            nuevoUsuario.inventario = [];
+        }
+
+        baseDeDatosUsuarios[usrKey] = nuevoUsuario;
         guardarEnStorage();
         usuarioSesionActiva = usrKey;
         localStorage.setItem('sesion_activa_ubate_v2026', usrKey);
@@ -326,12 +323,86 @@ document.addEventListener('DOMContentLoaded', () => {
         pantallaApp.classList.remove('hidden');
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
 
-        if (usrData.logo) {
-            imgAvatarHeader.src = usrData.logo;
+        if (usrData.logo) imgAvatarHeader.src = usrData.logo;
+
+        if (usrData.rol === 'conductor') {
+            sheetTituloPrincipal.innerHTML = `<i class="fa-solid fa-truck-fast"></i> Bolsa de Fletes y Carga Disponible`;
+            iconNavGestion.className = "fa-solid fa-truck-fast";
+            txtNavGestion.textContent = "Bolsa Carga";
+            lblBtnGestion.textContent = "Bolsa Fletes";
+        } else {
+            sheetTituloPrincipal.innerHTML = `<i class="fa-solid fa-boxes-stacked"></i> Gestión de Inventario`;
+            iconNavGestion.className = "fa-solid fa-boxes-stacked";
+            txtNavGestion.textContent = "Mis Productos";
+            lblBtnGestion.textContent = "Inventario";
         }
 
-        renderizarTabla();
+        configurarContenidoSheet();
         setTimeout(() => inicializarMapaPrincipal(), 300);
+    }
+
+    function configurarContenidoSheet() {
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        if (usrData.rol === 'conductor') {
+            sheetContentBody.innerHTML = `
+                <div class="card-section" style="background:#fef2f2; border-color:#fca5a5;">
+                    <h4><i class="fa-solid fa-id-card"></i> Estado del Transportador</h4>
+                    <p style="font-size:0.85rem; color:#475569; margin-top:4px;">Vehículo: <strong>${usrData.vehiculo}</strong> | Placa: <strong>${usrData.placa}</strong></p>
+                    <p style="font-size:0.8rem; color:#16a34a; font-weight:bold; margin-top:2px;">🟢 Disponible en el mapa para recibir cargas</p>
+                </div>
+                <div class="card-section">
+                    <h4><i class="fa-solid fa-route"></i> Solicitudes de Flete Activas en Colombia</h4>
+                    <div id="lista-fletes-conductor" style="margin-top:8px;">
+                        <div style="background:#fff; padding:10px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:8px;">
+                            <strong style="color:#dc2626;">📦 Traslado de Lote: Bogotá D.C. ➔ Ubaté</strong>
+                            <p style="font-size:0.8rem; color:#64748b; margin:4px 0;">Carga: Queso Doble Crema (50 un.)</p>
+                            <button onclick="alert('✅ ¡Viaje aceptado! Dirígete a la bodega de origen.')" style="background:#16a34a; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.78rem;"><i class="fa-solid fa-check"></i> Aceptar Viaje (Flete)</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            sheetContentBody.innerHTML = `
+                <div class="card-section ocr-highlight">
+                    <h4><i class="fa-solid fa-file-invoice-dollar"></i> Ingreso Masivo por Foto de Factura (OCR)</h4>
+                    <p style="font-size:0.8rem; color:#1e40af; margin-bottom:8px;">Tómale foto a tu factura para auditar y cargar productos al stock.</p>
+                    <div class="input-group">
+                        <input type="file" id="input-foto-factura" accept="image/*" capture="environment">
+                    </div>
+                    <button id="btn-procesar-ocr" class="btn-primary" style="background-color: #2563eb;"><i class="fa-solid fa-wand-magic-sparkles"></i> Escanear Factura y Revisar</button>
+                    <div id="estado-ocr" class="ocr-status-text"></div>
+                </div>
+                <div class="card-section">
+                    <h4 id="titulo-form-producto"><i class="fa-solid fa-pen-to-square"></i> Guardar / Modificar Producto</h4>
+                    <form id="form-producto" class="form-grid-compact">
+                        <input type="hidden" id="prod-id">
+                        <div class="input-group"><label>Referencia / Código:</label><input type="text" id="prod-codigo" placeholder="Ej. REF-101" required></div>
+                        <div class="input-group"><label>Descripción Producto:</label><input type="text" id="prod-nombre" placeholder="Ej. Queso Doble Crema" required></div>
+                        <div class="input-group"><label>Stock (Unidades):</label><input type="number" id="prod-stock" min="0" placeholder="20" required></div>
+                        <div class="input-group"><label>Fecha Vencimiento:</label><input type="date" id="prod-vencimiento" required></div>
+                        <div class="input-group"><label>Stock Mínimo:</label><input type="number" id="prod-minimo" min="0" value="5" required></div>
+                        <div class="input-group"><label>Costo Compra ($ COP):</label><input type="number" id="prod-costo" min="0" placeholder="10000" required></div>
+                        <div class="input-group"><label>% IVA:</label>
+                            <select id="prod-iva"><option value="0">0% Exento</option><option value="5">5% Especial</option><option value="19" selected>19% General</option></select>
+                        </div>
+                        <div class="input-group"><label>% Margen Ganancia:</label><input type="number" id="prod-margen" value="30" min="0" required></div>
+                        <button type="submit" class="btn-primary grid-full-btn" style="margin-top:10px;"><i class="fa-solid fa-floppy-disk"></i> Guardar en Stock</button>
+                    </form>
+                </div>
+                <div class="card-section">
+                    <h4><i class="fa-solid fa-list-check"></i> Catálogo de Suministros</h4>
+                    <div class="table-responsive">
+                        <table class="tabla-inventario">
+                            <thead><tr><th>Producto</th><th>Stock</th><th>Costo</th><th>IVA/Margen</th><th>Público</th><th>Acción</th></tr></thead>
+                            <tbody id="tabla-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            renderizarTabla();
+            setupOcrListeners();
+            setupFormProductoListener();
+        }
     }
 
     function inicializarMapaPrincipal() {
@@ -358,39 +429,50 @@ document.addEventListener('DOMContentLoaded', () => {
             const logo = dataUsr.logo || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
             const nombreMostrar = dataUsr.nombreOriginal || usrKey;
             const esActual = (usrKey === usuarioSesionActiva);
+            const esConductor = (dataUsr.rol === 'conductor');
 
-            let listaProductosHTML = "";
-            if (dataUsr.inventario && dataUsr.inventario.length > 0) {
-                listaProductosHTML = `
-                    <div style="max-height: 130px; overflow-y: auto; text-align: left; margin-top: 6px; border-top: 1px solid #e2e8f0; padding-top: 4px;">
-                        <strong style="font-size:0.75rem; color:#1f2937;">📦 Productos y Precios:</strong>
-                        <ul style="margin: 3px 0 0 12px; padding: 0; font-size: 0.72rem; color: #475569;">
+            let popupContent = "";
+            if (esConductor) {
+                popupContent = `
+                    <div style="font-family:sans-serif; text-align:center; width:200px;">
+                        <div style="background:#fef2f2; color:#dc2626; font-size:0.75rem; font-weight:bold; padding:2px; border-radius:4px; margin-bottom:4px;">🚚 TRANSPORTADOR UBER CARGA</div>
+                        <strong style="font-size:0.9rem; color:#1e293b;">${nombreMostrar}</strong><br>
+                        <span style="font-size:0.75rem; color:#64748b;">Vehículo: ${dataUsr.vehiculo}</span><br>
+                        <span style="font-size:0.75rem; color:#16a34a; font-weight:bold;">Placa: ${dataUsr.placa}</span>
+                    </div>
                 `;
-                dataUsr.inventario.forEach(prod => {
-                    listaProductosHTML += `<li style="margin-bottom:2px;"><strong>${prod.nombre}</strong> (${prod.stock} un.) - <strong>$${prod.precio.toLocaleString()} COP</strong></li>`;
-                });
-                listaProductosHTML += `</ul></div>`;
             } else {
-                listaProductosHTML = `<p style="margin-top:4px; font-size:0.72rem; color:#dc2626;">Sin productos en stock.</p>`;
+                let listaProd = "";
+                if (dataUsr.inventario && dataUsr.inventario.length > 0) {
+                    listaProd = `<div style="max-height:110px; overflow-y:auto; text-align:left; margin-top:4px; border-top:1px solid #e2e8f0; padding-top:4px;"><ul style="margin:0 0 0 12px; font-size:0.72rem; color:#475569;">`;
+                    dataUsr.inventario.forEach(p => {
+                        listaProd += `<li><strong>${p.nombre}</strong> (${p.stock} un.) - $${p.precio.toLocaleString()} COP</li>`;
+                    });
+                    listaProd += `</ul></div>`;
+                } else {
+                    listaProd = `<p style="font-size:0.72rem; color:#dc2626; margin-top:4px;">Sin stock registrado.</p>`;
+                }
+
+                popupContent = `
+                    <div style="font-family:sans-serif; text-align:center; width:210px;">
+                        <strong style="color:${esActual ? '#16a34a' : '#dc2626'}; font-size:0.9rem;">${nombreMostrar.toUpperCase()} ${esActual ? '(Tu Sede)' : ''}</strong><br>
+                        <span style="font-size:0.75rem; color:#64748b;">📍 ${dataUsr.ciudad}, ${dataUsr.departamento}</span><br>
+                        <span style="font-size:0.72rem; color:#94a3b8;">${dataUsr.direccion}</span>
+                        ${listaProd}
+                    </div>
+                `;
             }
 
+            const pinColor = esConductor ? '#2563eb' : (esActual ? '#16a34a' : '#dc2626');
             const customIcon = L.divIcon({
                 className: 'custom-map-pin',
-                html: `<div style="width:38px; height:38px; border-radius:50%; border:3px solid ${esActual ? '#16a34a' : '#dc2626'}; overflow:hidden; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);"><img src="${logo}" style="width:100%; height:100%; object-fit:cover;"></div>`,
+                html: `<div style="width:38px; height:38px; border-radius:50%; border:3px solid ${pinColor}; overflow:hidden; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);"><img src="${logo}" style="width:100%; height:100%; object-fit:cover;"></div>`,
                 iconSize: [38, 38],
                 iconAnchor: [19, 19]
             });
 
             const marker = L.marker([lat, lng], { icon: customIcon }).addTo(mapaPrincipal);
-            marker.bindPopup(`
-                <div style="font-family:sans-serif; text-align:center; width:210px;">
-                    <strong style="color:${esActual ? '#16a34a' : '#dc2626'}; font-size:0.9rem;">${nombreMostrar.toUpperCase()} ${esActual ? '(Tu Distribuidora)' : ''}</strong><br>
-                    <span style="font-size:0.75rem; color:#64748b;">📍 ${dataUsr.ciudad}, ${dataUsr.departamento}</span><br>
-                    <span style="font-size:0.72rem; color:#94a3b8;">${dataUsr.direccion}</span>
-                    ${listaProductosHTML}
-                </div>
-            `, { maxWidth: 240 });
-
+            marker.bindPopup(popupContent, { maxWidth: 240 });
             if (esActual) marker.openPopup();
         });
     }
@@ -442,15 +524,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnMiUbicacion.addEventListener('click', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
-        if (usrData && mapaPrincipal) {
-            mapaPrincipal.setView([usrData.lat, usrData.lng], 14);
-        }
+        if (usrData && mapaPrincipal) mapaPrincipal.setView([usrData.lat, usrData.lng], 14);
     });
 
     chipRedToggle.addEventListener('click', () => {
         modoOnline = !modoOnline;
         lblEstadoRed.textContent = modoOnline ? "Online" : "Offline";
-        chipRedToggle.style.color = modoOnline ? "#dc2626" : "#475569";
     });
 
     btnPerfilAvatar.addEventListener('click', () => abrirModalPerfil());
@@ -471,81 +550,77 @@ document.addEventListener('DOMContentLoaded', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         usrData.departamento = perfilDepartamento.value;
         usrData.ciudad = perfilCiudad.value;
-        usrData.direccion = perfilDireccion.value.trim();
+        if (usrData.rol === 'empresa') usrData.direccion = perfilDireccion.value.trim();
         if (logoBase64Perfil) {
             usrData.logo = logoBase64Perfil;
             imgAvatarHeader.src = logoBase64Perfil;
         }
 
         const coords = coordenadasBaseSedes[usrData.ciudad];
-        if (coords) {
-            usrData.lat = coords.lat;
-            usrData.lng = coords.lng;
-        }
+        if (coords) { usrData.lat = coords.lat; usrData.lng = coords.lng; }
 
         guardarEnStorage();
         modalPerfil.classList.add('hidden');
         inicializarMapaPrincipal();
-        alert("✅ Datos de la distribuidora actualizados.");
+        alert("✅ Perfil actualizado con éxito.");
     });
 
-    btnProcesarOCR.addEventListener('click', async () => {
-        const archivo = inputFotoFactura.files[0];
-        if (!archivo) {
-            alert("⚠️ Selecciona o tómale una foto a la factura.");
-            return;
-        }
+    function setupOcrListeners() {
+        const btnProcesarOCR = document.getElementById('btn-procesar-ocr');
+        if (!btnProcesarOCR) return;
 
-        estadoOCR.innerHTML = "⏳ Escaneando productos con OCR...";
-        productosDetectadosTemporal = [];
+        btnProcesarOCR.addEventListener('click', async () => {
+            const inputFotoFactura = document.getElementById('input-foto-factura');
+            const estadoOCR = document.getElementById('estado-ocr');
+            const archivo = inputFotoFactura.files[0];
+            if (!archivo) { alert("⚠️ Selecciona una foto de factura."); return; }
 
-        try {
-            const result = await Tesseract.recognize(archivo, 'spa', {
-                logger: m => {
-                    if (m.status === 'recognizing text') {
-                        estadoOCR.innerHTML = `⏳ Escaneando factura: ${Math.round(m.progress * 100)}%`;
+            estadoOCR.innerHTML = "⏳ Escaneando productos con OCR...";
+            productosDetectadosTemporal = [];
+
+            try {
+                const result = await Tesseract.recognize(archivo, 'spa', {
+                    logger: m => {
+                        if (m.status === 'recognizing text') estadoOCR.innerHTML = `⏳ Escaneando: ${Math.round(m.progress * 100)}%`;
                     }
-                }
-            });
+                });
 
-            const lineas = result.data.text.split('\n');
-            lineas.forEach((linea, index) => {
-                const numeros = linea.match(/\d+/g);
-                if (numeros && numeros.length >= 1) {
-                    const costoBase = parseInt(numeros[numeros.length - 1]);
-                    const cantidad = numeros.length >= 2 ? parseInt(numeros[numeros.length - 2]) : 1;
-                    let descripcion = linea.replace(/[0-9]/g, '').trim();
+                const lineas = result.data.text.split('\n');
+                lineas.forEach((linea, index) => {
+                    const numeros = linea.match(/\d+/g);
+                    if (numeros && numeros.length >= 1) {
+                        const costoBase = parseInt(numeros[numeros.length - 1]);
+                        const cantidad = numeros.length >= 2 ? parseInt(numeros[numeros.length - 2]) : 1;
+                        let descripcion = linea.replace(/[0-9]/g, '').trim();
 
-                    const textoMin = descripcion.toLowerCase();
-                    const esBasura = textoMin.includes('nit') || textoMin.includes('total') || textoMin.includes('subtotal') || textoMin.includes('iva') || textoMin.includes('tel');
-
-                    if (descripcion.length > 3 && costoBase > 500 && !esBasura) {
-                        productosDetectadosTemporal.push({
-                            idTemp: index,
-                            nombre: descripcion,
-                            cantidad: cantidad > 0 ? cantidad : 1,
-                            costo: costoBase,
-                            iva: 19,
-                            margen: 30
-                        });
+                        if (descripcion.length > 3 && costoBase > 500 && !descripcion.toLowerCase().includes('nit')) {
+                            productosDetectadosTemporal.push({
+                                idTemp: index,
+                                nombre: descripcion,
+                                cantidad: cantidad > 0 ? cantidad : 1,
+                                costo: costoBase,
+                                iva: 19,
+                                margen: 30
+                            });
+                        }
                     }
-                }
-            });
+                });
 
-            if (productosDetectadosTemporal.length > 0) {
-                estadoOCR.innerHTML = `✅ ¡Escaneo completado! ${productosDetectadosTemporal.length} productos detectados.`;
-                abrirModalAuditoria();
-            } else {
-                estadoOCR.innerHTML = `⚠️ No se leyeron productos claros. Toma una foto más nítida.`;
+                if (productosDetectadosTemporal.length > 0) {
+                    estadoOCR.innerHTML = `✅ ¡Escaneo completado! ${productosDetectadosTemporal.length} productos detectados.`;
+                    abrirModalAuditoria();
+                } else {
+                    estadoOCR.innerHTML = `⚠️ No se leyeron productos claros. Intenta con otra foto.`;
+                }
+            } catch (err) {
+                console.error(err);
+                estadoOCR.innerHTML = `⚠️ Error al escanear imagen.`;
             }
-
-        } catch (err) {
-            console.error(err);
-            estadoOCR.innerHTML = `⚠️ Error al escanear imagen.`;
-        }
-    });
+        });
+    }
 
     function abrirModalAuditoria() {
+        const tablaAuditoriaBody = document.getElementById('tabla-auditoria-body');
         tablaAuditoriaBody.innerHTML = '';
         productosDetectadosTemporal.forEach((prod, idx) => {
             const tr = document.createElement('tr');
@@ -553,24 +628,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td><input type="text" value="${prod.nombre}" id="aud-nombre-${idx}" style="width:100%;"></td>
                 <td><input type="number" value="${prod.cantidad}" min="1" id="aud-cant-${idx}" style="width:50px;"></td>
                 <td><input type="number" value="${prod.costo}" min="0" id="aud-costo-${idx}" style="width:80px;"></td>
-                <td>
-                    <select id="aud-iva-${idx}">
-                        <option value="0" ${prod.iva === 0 ? 'selected' : ''}>0%</option>
-                        <option value="5" ${prod.iva === 5 ? 'selected' : ''}>5%</option>
-                        <option value="19" ${prod.iva === 19 ? 'selected' : ''}>19%</option>
-                    </select>
-                </td>
+                <td><select id="aud-iva-${idx}"><option value="0" ${prod.iva===0?'selected':''}>0%</option><option value="5" ${prod.iva===5?'selected':''}>5%</option><option value="19" ${prod.iva===19?'selected':''}>19%</option></select></td>
                 <td><input type="number" value="${prod.margen}" min="0" id="aud-margen-${idx}" style="width:50px;"></td>
             `;
             tablaAuditoriaBody.appendChild(tr);
         });
-        modalAuditoriaFactura.classList.remove('hidden');
+        document.getElementById('modal-auditoria-factura').classList.remove('hidden');
     }
 
-    btnCerrarAuditoria.addEventListener('click', () => modalAuditoriaFactura.classList.add('hidden'));
-    btnCancelarAuditoria.addEventListener('click', () => modalAuditoriaFactura.classList.add('hidden'));
+    document.getElementById('btn-cerrar-auditoria').addEventListener('click', () => document.getElementById('modal-auditoria-factura').classList.add('hidden'));
+    document.getElementById('btn-cancelar-auditoria').addEventListener('click', () => document.getElementById('modal-auditoria-factura').classList.add('hidden'));
 
-    btnConfirmarIngresoFactura.addEventListener('click', () => {
+    document.getElementById('btn-confirmar-ingreso-factura').addEventListener('click', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         let ingresados = 0;
 
@@ -583,12 +652,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (nombreCorregido && costoCorregido > 0) {
                 const precioFinal = Math.round((costoCorregido * (1 + ivaCorregido / 100)) * (1 + margenCorregido / 100));
-                const fechaDefecto = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                const refCode = "REF-" + Math.floor(1000 + Math.random() * 9000);
-
                 usrData.inventario.unshift({
                     id: "prod_" + Date.now() + "_" + idx,
-                    codigo: refCode,
+                    codigo: "REF-" + Math.floor(1000 + Math.random() * 9000),
                     nombre: nombreCorregido,
                     stock: cantidadCorregida,
                     minimo: 5,
@@ -596,7 +662,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ivaPorcentaje: ivaCorregido,
                     margenPorcentaje: margenCorregido,
                     precio: precioFinal,
-                    lotes: [{ idLote: "lote_" + Date.now(), cantidad: cantidadCorregida, fechaVencimiento: fechaDefecto }]
+                    lotes: [{ idLote: "lote_" + Date.now(), cantidad: cantidadCorregida, fechaVencimiento: "2026-12-30" }]
                 });
                 ingresados++;
             }
@@ -605,30 +671,92 @@ document.addEventListener('DOMContentLoaded', () => {
         guardarEnStorage();
         renderizarTabla();
         inicializarMapaPrincipal();
-        modalAuditoriaFactura.classList.add('hidden');
-        inputFotoFactura.value = '';
-        estadoOCR.innerHTML = `✅ ¡Ingresados ${ingresados} productos al stock del mapa!`;
+        document.getElementById('modal-auditoria-factura').classList.add('hidden');
+        alert(`✅ ¡Ingresados ${ingresados} productos al stock!`);
     });
 
-    inputBuscarMapa.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-        if (!query) return;
+    function setupFormProductoListener() {
+        const formProducto = document.getElementById('form-producto');
+        if (!formProducto) return;
 
-        Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
-            const usr = baseDeDatosUsuarios[usrKey];
-            const coincideDistribuidora = usr.nombreOriginal.toLowerCase().includes(query) || usr.ciudad.toLowerCase().includes(query);
-            const coincideProducto = usr.inventario.some(p => p.nombre.toLowerCase().includes(query));
+        formProducto.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+            const id = document.getElementById('prod-id').value;
+            const codigo = document.getElementById('prod-codigo').value.trim() || ("REF-" + Math.floor(1000 + Math.random() * 9000));
+            const nombre = document.getElementById('prod-nombre').value.trim();
+            const stockNum = parseInt(document.getElementById('prod-stock').value);
+            const fechaVenc = document.getElementById('prod-vencimiento').value;
+            const minNum = parseInt(document.getElementById('prod-minimo').value);
+            const costoNum = parseInt(document.getElementById('prod-costo').value);
+            const ivaNum = parseFloat(document.getElementById('prod-iva').value);
+            const margenNum = parseFloat(document.getElementById('prod-margen').value);
+            const precioFinal = Math.round((costoNum * (1 + ivaNum / 100)) * (1 + margenNum / 100));
 
-            if ((coincideDistribuidora || coincideProducto) && mapaPrincipal) {
-                mapaPrincipal.setView([usr.lat, usr.lng], 12);
+            if (id) {
+                const idx = usrData.inventario.findIndex(p => p.id === id);
+                if (idx !== -1) {
+                    usrData.inventario[idx] = { ...usrData.inventario[idx], codigo, nombre, stock: stockNum, minimo: minNum, costoCompra: costoNum, ivaPorcentaje: ivaNum, margenPorcentaje: margenNum, precio: precioFinal };
+                }
+            } else {
+                usrData.inventario.unshift({
+                    id: "prod_" + Date.now(),
+                    codigo, nombre, stock: stockNum, minimo: minNum, costoCompra: costoNum, ivaPorcentaje: ivaNum, margenPorcentaje: margenNum, precio: precioFinal,
+                    lotes: [{ idLote: "lote_" + Date.now(), cantidad: stockNum, fechaVencimiento: fechaVenc }]
+                });
             }
+
+            guardarEnStorage();
+            formProducto.reset();
+            document.getElementById('prod-id').value = '';
+            renderizarTabla();
+            inicializarMapaPrincipal();
+            alert("✅ Producto guardado correctamente.");
         });
-    });
+    }
+
+    function renderizarTabla() {
+        const tablaBody = document.getElementById('tabla-body');
+        if (!tablaBody) return;
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        if (!usrData || usrData.rol !== 'empresa') return;
+
+        tablaBody.innerHTML = '';
+        usrData.inventario.forEach(prod => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${prod.nombre}</strong><br><small style="color:#dc2626;">${prod.codigo}</small></td>
+                <td>${prod.stock}</td>
+                <td>$${prod.costoCompra.toLocaleString()}</td>
+                <td style="font-size:0.75rem;">IVA ${prod.ivaPorcentaje}%</td>
+                <td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()}</td>
+                <td><button onclick="editarProducto('${prod.id}')" style="background:#eab308; color:#fff; border:none; padding:4px 8px; border-radius:4px;"><i class="fa-solid fa-pen"></i></button></td>
+            `;
+            tablaBody.appendChild(tr);
+        });
+    }
+
+    window.editarProducto = function(id) {
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        const prod = usrData.inventario.find(p => p.id === id);
+        if (!prod) return;
+        document.getElementById('prod-id').value = prod.id;
+        document.getElementById('prod-codigo').value = prod.codigo;
+        document.getElementById('prod-nombre').value = prod.nombre;
+        document.getElementById('prod-stock').value = prod.stock;
+        document.getElementById('prod-minimo').value = prod.minimo;
+        document.getElementById('prod-costo').value = prod.costoCompra;
+        document.getElementById('prod-iva').value = prod.ivaPorcentaje;
+        document.getElementById('prod-margen').value = prod.margenPorcentaje;
+    };
 
     function poblarSelectorComparador() {
         const productosUnicos = new Set();
         Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
-            baseDeDatosUsuarios[usrKey].inventario.forEach(p => productosUnicos.add(p.nombre));
+            const u = baseDeDatosUsuarios[usrKey];
+            if (u.rol === 'empresa' && u.inventario) {
+                u.inventario.forEach(p => productosUnicos.add(p.nombre));
+            }
         });
 
         selectProductoComparar.innerHTML = '';
@@ -647,116 +775,52 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let html = `<table class="tabla-inventario"><thead><tr><th>Empresa</th><th>Ubicación</th><th>Precio Público</th><th>Stock</th></tr></thead><tbody>`;
-        let encontrado = false;
+        let html = `<table class="tabla-inventario"><thead><tr><th>Empresa</th><th>Ubicación</th><th>Precio Público</th><th>Acción Flete</th></tr></thead><tbody>`;
         let mejorPrecio = Infinity;
-        let mejorSede = "";
+        let mejorSedeNombre = "";
 
         Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
             const usr = baseDeDatosUsuarios[usrKey];
-            const prod = usr.inventario.find(p => p.nombre === prodSel);
-            if (prod) {
-                encontrado = true;
-                if (prod.precio < mejorPrecio) {
-                    mejorPrecio = prod.precio;
-                    mejorSede = `${usr.nombreOriginal} (${usr.ciudad})`;
+            if (usr.rol === 'empresa' && usr.inventario) {
+                const prod = usr.inventario.find(p => p.nombre === prodSel);
+                if (prod) {
+                    if (prod.precio < mejorPrecio) {
+                        mejorPrecio = prod.precio;
+                        mejorSedeNombre = usr.nombreOriginal;
+                    }
+                    html += `
+                        <tr>
+                            <td><strong>${usr.nombreOriginal}</strong></td>
+                            <td>${usr.ciudad}</td>
+                            <td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()} COP</td>
+                            <td><button onclick="alert('🚚 Solicitud de flete enviada a los transportadores disponibles en ${usr.ciudad}.')" style="background:#2563eb; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer;"><i class="fa-solid fa-truck-fast"></i> Pedir Flete</button></td>
+                        </tr>
+                    `;
                 }
-                html += `<tr><td><strong>${usr.nombreOriginal}</strong></td><td>${usr.ciudad}</td><td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()} COP</td><td>${prod.stock} un.</td></tr>`;
             }
         });
         html += `</tbody></table>`;
 
-        if (encontrado) {
-            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Precio:</strong> ${mejorSede} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong></div>` + html;
+        if (mejorPrecio !== Infinity) {
+            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Precio:</strong> ${mejorSedeName = mejorSedeNombre} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong>. Puedes solicitar un flete con un transportador en el mapa.</div>` + html;
         }
         resultadoComparacion.innerHTML = html;
     }
 
     selectProductoComparar.addEventListener('change', actualizarComparacionPrecios);
 
-    formProducto.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const id = prodId.value;
-        const codigo = prodCodigo.value.trim() || ("REF-" + Math.floor(1000 + Math.random() * 9000));
-        const nombre = prodNombre.value.trim();
-        const stockNum = parseInt(prodStock.value);
-        const fechaVenc = prodVencimiento.value;
-        const minNum = parseInt(prodMinimo.value);
-        const costoNum = parseInt(prodCosto.value);
-        const ivaNum = parseFloat(prodIva.value);
-        const margenNum = parseFloat(prodMargen.value);
+    inputBuscarMapa.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        if (!query) return;
 
-        const precioFinal = Math.round((costoNum * (1 + ivaNum / 100)) * (1 + margenNum / 100));
-        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
-
-        if (id) {
-            const idx = usrData.inventario.findIndex(p => p.id === id);
-            if (idx !== -1) {
-                usrData.inventario[idx].codigo = codigo;
-                usrData.inventario[idx].nombre = nombre;
-                usrData.inventario[idx].minimo = minNum;
-                usrData.inventario[idx].costoCompra = costoNum;
-                usrData.inventario[idx].ivaPorcentaje = ivaNum;
-                usrData.inventario[idx].margenPorcentaje = margenNum;
-                usrData.inventario[idx].precio = precioFinal;
+        Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
+            const usr = baseDeDatosUsuarios[usrKey];
+            const coincide = usr.nombreOriginal.toLowerCase().includes(query) || usr.ciudad.toLowerCase().includes(query) || (usr.vehiculo && usr.vehiculo.toLowerCase().includes(query));
+            if (coincide && mapaPrincipal) {
+                mapaPrincipal.setView([usr.lat, usr.lng], 12);
             }
-        } else {
-            usrData.inventario.unshift({
-                id: "prod_" + Date.now(),
-                codigo: codigo,
-                nombre: nombre,
-                stock: stockNum,
-                minimo: minNum,
-                costoCompra: costoNum,
-                ivaPorcentaje: ivaNum,
-                margenPorcentaje: margenNum,
-                precio: precioFinal,
-                lotes: [{ idLote: "lote_" + Date.now(), cantidad: stockNum, fechaVencimiento: fechaVenc }]
-            });
-        }
-
-        guardarEnStorage();
-        formProducto.reset();
-        prodId.value = '';
-        renderizarTabla();
-        inicializarMapaPrincipal();
-        alert("✅ Producto guardado en el stock del mapa.");
-    });
-
-    function renderizarTabla() {
-        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
-        if (!usrData) return;
-        tablaBody.innerHTML = '';
-
-        usrData.inventario.forEach(prod => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td><strong>${prod.nombre}</strong><br><small style="color:#dc2626;">${prod.codigo}</small></td>
-                <td>${prod.stock}</td>
-                <td>$${prod.costoCompra.toLocaleString()}</td>
-                <td style="font-size:0.75rem;">IVA ${prod.ivaPorcentaje}% / Margen ${prod.margenPorcentaje}%</td>
-                <td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()}</td>
-                <td>
-                    <button onclick="editarProducto('${prod.id}')" style="background:#eab308; color:#fff; border:none; padding:4px 8px; border-radius:4px;"><i class="fa-solid fa-pen"></i></button>
-                </td>
-            `;
-            tablaBody.appendChild(tr);
         });
-    }
-
-    window.editarProducto = function(id) {
-        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
-        const prod = usrData.inventario.find(p => p.id === id);
-        if (!prod) return;
-        prodId.value = prod.id;
-        prodCodigo.value = prod.codigo;
-        prodNombre.value = prod.nombre;
-        prodStock.value = prod.stock;
-        prodMinimo.value = prod.minimo;
-        prodCosto.value = prod.costoCompra;
-        prodIva.value = prod.ivaPorcentaje;
-        prodMargen.value = prod.margenPorcentaje;
-    };
+    });
 
     if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
         iniciarApp();
