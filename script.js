@@ -26,6 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
         "Pereira": { lat: 4.8133, lng: -75.6961 }
     };
 
+    // Bolsa global de fletes creados por las empresas reales
+    let bolsaFletesGlobal = JSON.parse(localStorage.getItem('bolsa_fletes_logistica_v2026')) || [
+        { id: "flete_1", empresa: "Distribuidora Ubaté", origen: "Ubaté", destino: "Bogotá D.C.", carga: "Queso Doble Crema (Lote 50 un.)", estado: "Disponible" }
+    ];
+
     const cuentasPredeterminadas = {
         "distribuidora_ubate": {
             rol: "empresa",
@@ -117,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const txtNavGestion = document.getElementById('txt-nav-gestion');
     const lblBtnGestion = document.getElementById('lbl-btn-gestion');
 
+    const chipsContainerNav = document.getElementById('chips-container-nav');
     const chipMapa = document.getElementById('chip-mapa');
     const chipMisProductos = document.getElementById('chip-mis-productos');
     const chipComparar = document.getElementById('chip-comparar');
@@ -148,6 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function guardarEnStorage() {
         localStorage.setItem('bd_logistica_ubate_v2026', JSON.stringify(baseDeDatosUsuarios));
+        localStorage.setItem('bolsa_fletes_logistica_v2026', JSON.stringify(bolsaFletesGlobal));
     }
 
     function mostrarMensaje(msg, tipo) {
@@ -156,7 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mensajeAuth.classList.remove('hidden');
     }
 
-    // Gestionar visibilidad de campos según Rol en Registro
     regRol.addEventListener('change', () => {
         if (regRol.value === 'conductor') {
             camposConductor.classList.remove('hidden');
@@ -335,16 +341,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (usrData.logo) imgAvatarHeader.src = usrData.logo;
 
+        // Ocultar / Mostrar opciones de navegación según sea Empresa o Conductor
+        const navCompararEl = document.getElementById('nav-comparar');
+        const chipCompararEl = document.getElementById('chip-comparar');
+
         if (usrData.rol === 'conductor') {
             sheetTituloPrincipal.innerHTML = `<i class="fa-solid fa-truck-fast"></i> Bolsa de Fletes y Carga Disponible`;
             iconNavGestion.className = "fa-solid fa-truck-fast";
-            txtNavGestion.textContent = "Bolsa Carga";
-            lblBtnGestion.textContent = "Bolsa Fletes";
+            txtNavGestion.textContent = "Bolsa Fletes";
+            lblBtnGestion.textContent = "Bolsa Carga";
+            if (navCompararEl) navCompararEl.style.display = 'none';
+            if (chipCompararEl) chipCompararEl.style.display = 'none';
         } else {
             sheetTituloPrincipal.innerHTML = `<i class="fa-solid fa-boxes-stacked"></i> Gestión de Inventario`;
             iconNavGestion.className = "fa-solid fa-boxes-stacked";
-            txtNavGestion.textContent = "Mis Productos";
+            txtNavGestion.textContent = "Inventario";
             lblBtnGestion.textContent = "Inventario";
+            if (navCompararEl) navCompararEl.style.display = 'flex';
+            if (chipCompararEl) chipCompararEl.style.display = 'inline-flex';
         }
 
         configurarContenidoSheet();
@@ -354,20 +368,34 @@ document.addEventListener('DOMContentLoaded', () => {
     function configurarContenidoSheet() {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         if (usrData.rol === 'conductor') {
+            let fletesHtml = "";
+            const fletesDisponibles = bolsaFletesGlobal.filter(f => f.estado === "Disponible");
+
+            if (fletesDisponibles.length > 0) {
+                fletesDisponibles.forEach(f => {
+                    fletesHtml += `
+                        <div style="background:#fff; padding:10px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:8px;">
+                            <strong style="color:#dc2626;">📦 Empresa: ${f.empresa}</strong>
+                            <p style="font-size:0.8rem; color:#64748b; margin:4px 0;">Ruta: <strong>${f.origen} ➔ ${f.destino}</strong></p>
+                            <p style="font-size:0.8rem; color:#334155; margin:4px 0;">Carga: ${f.carga}</p>
+                            <button onclick="aceptarFlete('${f.id}')" style="background:#16a34a; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.78rem;"><i class="fa-solid fa-check"></i> Aceptar Este Viaje (Flete)</button>
+                        </div>
+                    `;
+                });
+            } else {
+                fletesHtml = `<p style="font-size:0.85rem; color:#64748b;">No hay solicitudes de fletes activas en este momento por parte de las empresas.</p>`;
+            }
+
             sheetContentBody.innerHTML = `
                 <div class="card-section" style="background:#fef2f2; border-color:#fca5a5;">
                     <h4><i class="fa-solid fa-id-card"></i> Estado del Transportador</h4>
                     <p style="font-size:0.85rem; color:#475569; margin-top:4px;">Vehículo: <strong>${usrData.vehiculo}</strong> | Placa: <strong>${usrData.placa}</strong></p>
-                    <p style="font-size:0.8rem; color:#16a34a; font-weight:bold; margin-top:2px;">🟢 Disponible en el mapa para recibir cargas</p>
+                    <p style="font-size:0.8rem; color:#16a34a; font-weight:bold; margin-top:2px;">🟢 Activo en el mapa de cobertura</p>
                 </div>
                 <div class="card-section">
-                    <h4><i class="fa-solid fa-route"></i> Solicitudes de Flete Activas en Colombia</h4>
+                    <h4><i class="fa-solid fa-route"></i> Bolsa de Carga y Solicitudes de Flete</h4>
                     <div id="lista-fletes-conductor" style="margin-top:8px;">
-                        <div style="background:#fff; padding:10px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:8px;">
-                            <strong style="color:#dc2626;">📦 Traslado de Lote: Bogotá D.C. ➔ Ubaté</strong>
-                            <p style="font-size:0.8rem; color:#64748b; margin:4px 0;">Carga: Queso Doble Crema (50 un.)</p>
-                            <button onclick="alert('✅ ¡Viaje aceptado! Dirígete a la bodega de origen.')" style="background:#16a34a; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.78rem;"><i class="fa-solid fa-check"></i> Aceptar Viaje (Flete)</button>
-                        </div>
+                        ${fletesHtml}
                     </div>
                 </div>
             `;
@@ -414,6 +442,16 @@ document.addEventListener('DOMContentLoaded', () => {
             setupFormProductoListener();
         }
     }
+
+    window.aceptarFlete = function(fleteId) {
+        const flete = bolsaFletesGlobal.find(f => f.id === fleteId);
+        if (flete) {
+            flete.estado = "Aceptado";
+            guardarEnStorage();
+            alert(`✅ ¡Flete aceptado con éxito! Comunícate con la empresa ${flete} para iniciar el cargue.`);
+            configurarContenidoSheet();
+        }
+    };
 
     function inicializarMapaPrincipal() {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
@@ -488,14 +526,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function activarTab(tabName) {
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+
         navExplorar.classList.remove('active');
         navMisProductos.classList.remove('active');
         navComparar.classList.remove('active');
         navPerfil.classList.remove('active');
 
         chipMapa.classList.remove('active');
-        chipMisProductos.classList.remove('active');
-        chipComparar.classList.remove('active');
+        if(chipMisProductos) chipMisProductos.classList.remove('active');
+        if(chipComparar) chipComparar.classList.remove('active');
 
         sheetProductos.classList.add('hidden');
         sheetComparador.classList.add('hidden');
@@ -506,11 +546,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (mapaPrincipal) mapaPrincipal.invalidateSize();
         } else if (tabName === 'productos') {
             navMisProductos.classList.add('active');
-            chipMisProductos.classList.add('active');
+            if(chipMisProductos) chipMisProductos.classList.add('active');
             sheetProductos.classList.remove('hidden');
-        } else if (tabName === 'comparar') {
+        } else if (tabName === 'comparar' && usrData.rol === 'empresa') {
             navComparar.classList.add('active');
-            chipComparar.classList.add('active');
+            if(chipComparar) chipComparar.classList.add('active');
             poblarSelectorComparador();
             actualizarComparacionPrecios();
             sheetComparador.classList.remove('hidden');
@@ -526,8 +566,8 @@ document.addEventListener('DOMContentLoaded', () => {
     navPerfil.addEventListener('click', () => activarTab('perfil'));
 
     chipMapa.addEventListener('click', () => activarTab('explorar'));
-    chipMisProductos.addEventListener('click', () => activarTab('productos'));
-    chipComparar.addEventListener('click', () => activarTab('comparar'));
+    if(chipMisProductos) chipMisProductos.addEventListener('click', () => activarTab('productos'));
+    if(chipComparar) chipComparar.addEventListener('click', () => activarTab('comparar'));
 
     btnCerrarSheet.addEventListener('click', () => activarTab('explorar'));
     btnCerrarComparador.addEventListener('click', () => activarTab('explorar'));
@@ -786,14 +826,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function actualizarComparacionPrecios() {
         const prodSel = selectProductoComparar.value;
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         if (!prodSel) {
             resultadoComparacion.innerHTML = `<p style="color:#64748b;">No hay productos para comparar.</p>`;
             return;
         }
 
-        let html = `<table class="tabla-inventario"><thead><tr><th>Empresa</th><th>Ubicación</th><th>Precio Público</th><th>Acción Flete</th></tr></thead><tbody>`;
+        let html = `<table class="tabla-inventario"><thead><tr><th>Empresa Proveedora</th><th>Ubicación</th><th>Precio Público</th><th>Acción Flete</th></tr></thead><tbody>`;
         let mejorPrecio = Infinity;
         let mejorSedeName = "";
+        let ciudadProveedor = "";
 
         Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
             const usr = baseDeDatosUsuarios[usrKey];
@@ -803,13 +845,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (prod.precio < mejorPrecio) {
                         mejorPrecio = prod.precio;
                         mejorSedeName = usr.nombreOriginal;
+                        ciudadProveedor = usr.ciudad;
                     }
                     html += `
                         <tr>
                             <td><strong>${usr.nombreOriginal}</strong></td>
                             <td>${usr.ciudad}</td>
                             <td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()} COP</td>
-                            <td><button onclick="alert('🚚 Solicitud de flete enviada a los transportadores disponibles en ${usr.ciudad}.')" style="background:#2563eb; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer;"><i class="fa-solid fa-truck-fast"></i> Pedir Flete</button></td>
+                            <td><button onclick="solicitarFleteDesdeComparador('${usr.nombreOriginal}', '${ciudadProveedor}', '${usrData.ciudad}', '${prodSel}')" style="background:#2563eb; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer;"><i class="fa-solid fa-truck-fast"></i> Pedir Flete</button></td>
                         </tr>
                     `;
                 }
@@ -818,10 +861,24 @@ document.addEventListener('DOMContentLoaded', () => {
         html += `</tbody></table>`;
 
         if (mejorPrecio !== Infinity) {
-            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Precio:</strong> ${mejorSedeName} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong>. Puedes solicitar un flete con un transportador en el mapa.</div>` + html;
+            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Precio:</strong> ${mejorSedeName} (${ciudadProveedor}) a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong>. Haz clic en "Pedir Flete" para publicar la solicitud a los transportadores.</div>` + html;
         }
         resultadoComparacion.innerHTML = html;
     }
+
+    window.solicitarFleteDesdeComparador = function(proveedor, origen, destino, producto) {
+        const nuevoFlete = {
+            id: "flete_" + Date.now(),
+            empresa: proveedor,
+            origen: origen,
+            destino: destino,
+            carga: producto + " (Compra al por mayor)",
+            estado: "Disponible"
+        };
+        bolsaFletesGlobal.unshift(nuevoFlete);
+        guardarEnStorage();
+        alert(`🚚 ¡Solicitud de flete publicada con éxito desde ${origen} hacia tu bodega en ${destino}! Los transportadores cercanos la verán en su bolsa de carga.`);
+    };
 
     selectProductoComparar.addEventListener('change', actualizarComparacionPrecios);
 

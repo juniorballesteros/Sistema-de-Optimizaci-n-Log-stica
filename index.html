@@ -89,7 +89,7 @@
                     </div>
                 </div>
 
-                <!-- CAMPOS DE CONDUCTOR (TEXTO LIBRE PARA TURBO) -->
+                <!-- CAMPOS DE CONDUCTOR -->
                 <div id="campos-conductor" class="hidden" style="background:#fef2f2; padding:10px; border-radius:8px; border:1px solid #fca5a5; margin-bottom:10px;">
                     <div class="input-group">
                         <label for="reg-vehiculo">Escribe tu Tipo de Turbo / Vehículo:</label>
@@ -148,8 +148,8 @@
                 </div>
             </div>
 
-            <!-- CHIPS DE ACCESO RÁPIDO -->
-            <div class="quick-chips-scroll">
+            <!-- CHIPS DE ACCESO RÁPIDO (DINÁMICOS SEGÚN ROL) -->
+            <div class="quick-chips-scroll" id="chips-container-nav">
                 <button class="chip-btn active" id="chip-mapa"><i class="fa-solid fa-map"></i> Mapa Logístico</button>
                 <button class="chip-btn" id="chip-mis-productos"><i class="fa-solid fa-boxes-stacked"></i> <span id="lbl-btn-gestion">Inventario</span></button>
                 <button class="chip-btn" id="chip-comparar"><i class="fa-solid fa-scale-balanced"></i> Comparar Precios</button>
@@ -163,7 +163,7 @@
             <button id="btn-logout-fab" class="fab-btn fab-danger" title="Cerrar Sesión"><i class="fa-solid fa-power-off"></i></button>
         </div>
 
-        <!-- HOJA DESLIZABLE INFERIOR -->
+        <!-- HOJA DESLIZABLE INFERIOR: GESTIÓN EMPRESA O BOLSA DE CONDUCTOR -->
         <div id="sheet-productos" class="sliding-sheet hidden">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
@@ -176,24 +176,24 @@
             </div>
         </div>
 
-        <!-- HOJA DESLIZABLE INFERIOR: COMPARADOR -->
+        <!-- HOJA DESLIZABLE INFERIOR: COMPARADOR (SOLO EMPRESAS) -->
         <div id="sheet-comparador" class="sliding-sheet hidden">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
-                <h3><i class="fa-solid fa-scale-balanced"></i> Comparador de Precios y Fletes</h3>
+                <h3><i class="fa-solid fa-scale-balanced"></i> Comparador de Precios y Solicitud de Fletes</h3>
                 <button class="btn-close-sheet" id="btn-cerrar-comparador">&times;</button>
             </div>
             <div class="sheet-content">
                 <div class="input-group">
-                    <label for="select-producto-comparar">Selecciona el Producto:</label>
+                    <label for="select-producto-comparar">Selecciona el Producto a Comprar:</label>
                     <select id="select-producto-comparar"></select>
                 </div>
                 <div id="resultado-comparacion" style="margin-top: 15px;"></div>
             </div>
         </div>
 
-        <!-- NAVEGACIÓN INFERIOR -->
-        <nav class="gmaps-bottom-nav">
+        <!-- NAVEGACIÓN INFERIOR DINÁMICA -->
+        <nav class="gmaps-bottom-nav" id="bottom-nav-container">
             <button class="nav-item active" id="nav-explorar">
                 <i class="fa-solid fa-location-dot"></i>
                 <span>Explorar</span>
