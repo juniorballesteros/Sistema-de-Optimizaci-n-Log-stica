@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Inventario - Ubaté</title>
+    
+    <!-- Configuración para PWA (App Móvil) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#dc2626">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Logística Ubaté">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2897/2897785.png">
+
+    <!-- Íconos FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Estilos CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- PANTALLA 1: AUTENTICACIÓN Y REGISTRO -->
+    <div id="pantalla-login" class="container">
+        <header class="header">
+            <h1><i class="fa-solid fa-boxes-packing"></i> Sistema de Optimización Logística</h1>
+            <p class="subtitulo">Gestión de Suministros Alimentarios y Cadenas de Distribución - Ubaté</p>
+        </header>
+
+        <section class="card login-card">
+            <div class="tabs-auth">
+                <button id="tab-login" class="btn-tab active"><i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión</button>
+                <button id="tab-register" class="btn-tab"><i class="fa-solid fa-user-plus"></i> Crear Cuenta</button>
+            </div>
+
+            <!-- FORMULARIO 1: INICIAR SESIÓN -->
+            <form id="form-login" class="auth-form">
+                <h3>Ingresar al Sistema</h3>
+                <div class="input-group">
+                    <label for="usuario">Usuario / Gestor de Logística:</label>
+                    <input type="text" id="usuario" placeholder="Ej. gestor_alimentos" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Contraseña:</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="btn-primary">Ingresar al Inventario</button>
+            </form>
+
+            <!-- FORMULARIO 2: REGISTRAR NUEVO USUARIO -->
+            <form id="form-register" class="auth-form hidden">
+                <h3>Registrar Nuevo Operador</h3>
+                <div class="input-group">
+                    <label for="reg-usuario">Nuevo Usuario:</label>
+                    <input type="text" id="reg-usuario" placeholder="Crea un nombre de usuario" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-password">Nueva Contraseña:</label>
+                    <input type="password" id="reg-password" placeholder="Mín. 6 chars, 1 mayúscula, 1 especial" required>
+                    <small style="color: #6b7280; font-size: 0.75rem; display: block; margin-top: 4px;">
+                        ⚠️ La contraseña debe incluir al menos una letra mayúscula y un carácter especial o número (ej. @, $, !, %, *, #, ?).
+                    </small>
+                </div>
+                <button type="submit" class="btn-primary">Guardar y Registrar Cuenta</button>
+            </form>
+
+            <div id="mensaje-auth" class="hidden"></div>
+        </section>
+    </div>
+
+    <!-- PANTALLA 2: MÓDULO DE STOCK Y PRECIOS -->
+    <div id="pantalla-app" class="container hidden">
+        <header class="header-app">
+            <div>
+                <h2><i class="fa-solid fa-warehouse"></i> Control de Stock y Lotes Alimenticios</h2>
+                <div class="controles-conexion">
+                    <span id="estado-conexion" class="badge">
+                        <i class="fa-solid fa-wifi"></i> Online | <strong id="nombre-usuario-activo"></strong>
+                    </span>
+                    <button id="btn-toggle-red" class="btn-secondary" style="font-size:0.75rem; padding: 4px 8px;">
+                        <i class="fa-solid fa-toggle-on"></i> Simular Red
+                    </button>
+                    <button id="btn-sincronizar" class="btn-sync hidden">
+                        <i class="fa-solid fa-rotate"></i> Sincronizar Cola (<span id="count-cola">0</span>)
+                    </button>
+                </div>
+            </div>
+            <div>
+                <button id="btn-reportes" class="btn-success"><i class="fa-solid fa-chart-line"></i> Reportes</button>
+                <button id="btn-logout" class="btn-secondary"><i class="fa-solid fa-power-off"></i> Salir</button>
+            </div>
+        </header>
+
+        <!-- Formulario para registrar o modificar productos con lote inicial -->
+        <section class="card">
+            <h3 id="titulo-form-producto"><i class="fa-solid fa-pen-to-square"></i> Registrar Nuevo Producto Alimentario con Lote</h3>
+            <form id="form-producto" class="grid-form">
+                <input type="hidden" id="prod-id">
+                <div class="input-group">
+                    <label for="prod-codigo">Código de Barras:</label>
+                    <input type="text" id="prod-codigo" placeholder="Ej. 7701234567" required>
+                </div>
+                <div class="input-group">
+                    <label for="prod-nombre">Descripción del Alimento:</label>
+                    <input type="text" id="prod-nombre" placeholder="Ej. Queso Doble Crema" required>
+                </div>
+                <div class="input-group">
+                    <label for="prod-stock">Stock Inicial (Unidades):</label>
+                    <input type="number" id="prod-stock" min="0" placeholder="Ej. 20" required>
+                </div>
+                <div class="input-group">
+                    <label for="prod-vencimiento">Fecha Vencimiento (Lote Inicial):</label>
+                    <input type="date" id="prod-vencimiento" required>
+                </div>
+                <div class="input-group">
+                    <label for="prod-minimo">Stock Mínimo (Alerta):</label>
+                    <input type="number" id="prod-minimo" min="0" placeholder="5" required>
+                </div>
+                <div class="input-group">
+                    <label for="prod-precio">Precio Unitario ($ COP):</label>
+                    <input type="number" id="prod-precio" min="0" placeholder="15000" required>
+                </div>
+                <div class="input-group grid-full" style="display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn-primary" style="max-width: 280px; height: 42px;">
+                        <i class="fa-solid fa-floppy-disk"></i> Guardar Producto
+                    </button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Catálogo de Suministros y Alertas de Vencimiento -->
+        <section class="card">
+            <div class="acciones-superiores">
+                <h3><i class="fa-solid fa-list-check"></i> Catálogo de Suministros y Detalle de Lotes</h3>
+                
+                <div class="search-box">
+                    <i class="fa-solid fa-barcode"></i>
+                    <input type="text" id="input-buscar" placeholder="Escanea o busca por Código / Nombre...">
+                </div>
+            </div>
+
+            <table class="tabla-inventario">
+                <thead>
+                    <tr>
+                        <th>Código / Producto</th>
+                        <th>Stock Total</th>
+                        <th>Stock Mín.</th>
+                        <th>Precio Unitario</th>
+                        <th>Estado / Vencimiento</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-body">
+                    <!-- Filas cargadas dinámicamente -->
+                </tbody>
+            </table>
+        </section>
+
+        <footer class="footer-creditos">
+            <p><strong>Proyecto de Aula:</strong> Sistema de Gestión de Inventarios y Lotes v1.0</p>
+            <p>Desarrollado por el equipo de ingeniería | Ubaté - 2026</p>
+        </footer>
+    </div>
+
+    <!-- MODAL PARA REGISTRAR ENTRADA CON LOTE / SALIDA FIFO -->
+    <div id="modal-movimiento" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-titulo-mov">Registrar Movimiento de Inventario</h3>
+                <button class="btn-close" id="btn-cerrar-modal">&times;</button>
+            </div>
+            <form id="form-movimiento">
+                <input type="hidden" id="mov-prod-id">
+                <input type="hidden" id="mov-tipo">
+                
+                <div class="input-group">
+                    <label>Producto Seleccionado:</label>
+                    <input type="text" id="mov-prod-nombre" readonly style="background:#e5e7eb; font-weight:bold;">
+                </div>
+                
+                <div class="input-group">
+                    <label for="mov-cantidad">Cantidad de Unidades:</label>
+                    <input type="number" id="mov-cantidad" min="1" placeholder="Ingrese cantidad" required>
+                </div>
+
+                <div class="input-group" id="grupo-vencimiento-mov">
+                    <label for="mov-vencimiento">Fecha de Vencimiento de este Nuevo Lote:</label>
+                    <input type="date" id="mov-vencimiento">
+                </div>
+
+                <p id="mov-alerta-fifo" style="color: #2563eb; font-size: 0.85rem; margin-bottom: 10px;" class="hidden">
+                    ℹ️ <strong>Estrategia FIFO:</strong> Las unidades saldrán automáticamente del lote más próximo a vencer.
+                </p>
+
+                <p id="mov-alerta-stock" style="color: #dc2626; font-weight: bold; margin-bottom: 10px;" class="hidden">
+                    ⚠️ Error: La cantidad de salida supera el stock actual disponible.
+                </p>
+
+                <button type="submit" id="btn-guardar-mov" class="btn-primary">Confirmar Transacción</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE REPORTES E HISTORIAL -->
+    <div id="modal-reportes" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-file-invoice"></i> Reportes de Stock, Lotes e Historial</h3>
+                <button class="btn-close" id="btn-cerrar-reportes">&times;</button>
+            </div>
+            
+            <p style="margin-bottom: 15px; color:#4b5563;">
+                Trazabilidad cronológica de entradas, salidas y vencimiento de lotes para decisiones de abastecimiento.
+            </p>
+
+            <table class="tabla-inventario">
+                <thead>
+                    <tr>
+                        <th>Fecha / Hora</th>
+                        <th>Operario</th>
+                        <th>Producto</th>
+                        <th>Tipo</th>
+                        <th>Cantidad / Vencimiento</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-reportes-body">
+                    <!-- Trazabilidad dinámica -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Script de lógica de la app -->
+    <script src="script.js"></script>
+
+    <!-- Registro automático de la PWA (App Móvil) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('PWA Service Worker registrado con éxito:', reg.scope))
+                    .catch(err => console.error('Error al registrar Service Worker PWA:', err));
+            });
+        }
+    </script>
+</body>
+</html>
