@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         "conductor_carlos": {
             rol: "conductor",
-            nombreOriginal: "Carlos Pérez (Turbo)",
+            nombreOriginal: "Carlos Pérez",
             password: "Admin123*",
             departamento: "Cundinamarca",
             ciudad: "Bogotá D.C.",
@@ -156,6 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
         mensajeAuth.classList.remove('hidden');
     }
 
+    // Gestionar visibilidad de campos según Rol en Registro
     regRol.addEventListener('change', () => {
         if (regRol.value === 'conductor') {
             camposConductor.classList.remove('hidden');
@@ -165,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             regPlaca.setAttribute('required', 'true');
         } else {
             camposConductor.classList.add('hidden');
-            grupoDireccion.style.display = 'flex';
+            grupoDireccion.style.display = 'block';
             regDireccion.setAttribute('required', 'true');
             regVehiculo.removeAttribute('required');
             regPlaca.removeAttribute('required');
@@ -227,6 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tabRegister.classList.remove('active');
         formLogin.classList.remove('hidden');
         formRegister.classList.add('hidden');
+        mensajeAuth.classList.add('hidden');
     });
 
     tabRegister.addEventListener('click', () => {
@@ -234,6 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tabLogin.classList.remove('active');
         formRegister.classList.remove('hidden');
         formLogin.classList.add('hidden');
+        mensajeAuth.classList.add('hidden');
         setTimeout(() => inicializarMapaRegistro(), 300);
     });
 
@@ -274,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (baseDeDatosUsuarios[usrKey]) {
-            mostrarMensaje("El nombre de usuario ya existe.", "error");
+            mostrarMensaje("⚠️ El usuario ya existe. Elige otro nombre o inicia sesión.", "error");
             return;
         }
 
@@ -550,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (usrData.rol === 'conductor') {
             grupoDirPerfil.style.display = 'none';
         } else {
-            grupoDirPerfil.style.display = 'flex';
+            grupoDirPerfil.style.display = 'block';
             perfilDireccion.value = usrData.direccion || "";
         }
         modalPerfil.classList.remove('hidden');
