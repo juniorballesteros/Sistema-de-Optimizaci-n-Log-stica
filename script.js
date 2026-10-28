@@ -1,16 +1,41 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const coordenadasBaseSedes = {
-        "Ubaté": { lat: 5.3114, lng: -73.8169 },
-        "Bogotá": { lat: 4.6097, lng: -74.0817 },
-        "Villavicencio": { lat: 4.1420, lng: -73.6266 },
-        "Pereira": { lat: 4.8133, lng: -75.6961 },
-        "Montería": { lat: 8.7479, lng: -75.8814 }
+    // DICCIONARIO NACIONAL DE DEPARTAMENTOS Y MUNICIPIOS
+    const municipiosDeColombia = {
+        "Cundinamarca": ["Ubaté", "Bogotá D.C.", "Zipaquirá", "Chocontá", "Fusagasugá", "Girardot", "Facatativá", "Soacha", "Chía"],
+        "Boyacá": ["Tunja", "Duitama", "Sogamoso", "Chiquinquirá", "Paipa", "Puerto Boyacá"],
+        "Antioquia": ["Medellín", "Bello", "Itagüí", "Envigado", "Rionegro", "Apartadó"],
+        "Valle del Cauca": ["Cali", "Buenaventura", "Palmira", "Tuluá", "Buga", "Cartago"],
+        "Santander": ["Bucaramanga", "Floridablanca", "Girón", "Piedecuesta", "Barrancabermeja"],
+        "Meta": ["Villavicencio", "Acacías", "Granada", "Puerto López"],
+        "Atlántico": ["Barranquilla", "Soledad", "Malambo", "Sabanalarga"],
+        "Córdoba": ["Montería", "Cereté", "Sahagún", "Lorica", "Tierralta"],
+        "Risaralda": ["Pereira", "Dosquebradas", "Santa Rosa de Cabal"]
     };
 
-    // LLAVE ÚNICA GLOBAL: Garantiza que nunca se borren las empresas y se acumulen permanentemente
+    const coordenadasBaseSedes = {
+        "Ubaté": { lat: 5.3114, lng: -73.8169 },
+        "Bogotá D.C.": { lat: 4.6097, lng: -74.0817 },
+        "Zipaquirá": { lat: 5.0233, lng: -74.0044 },
+        "Chocontá": { lat: 5.1528, lng: -73.6822 },
+        "Fusagasugá": { lat: 4.3389, lng: -74.3636 },
+        "Tunja": { lat: 5.5353, lng: -73.3678 },
+        "Duitama": { lat: 5.8256, lng: -73.0336 },
+        "Sogamoso": { lat: 5.7148, lng: -72.9338 },
+        "Chiquinquirá": { lat: 5.6174, lng: -73.8157 },
+        "Medellín": { lat: 6.2442, lng: -75.5812 },
+        "Cali": { lat: 3.4516, lng: -76.5320 },
+        "Bucaramanga": { lat: 7.1193, lng: -73.1227 },
+        "Villavicencio": { lat: 4.1420, lng: -73.6266 },
+        "Barranquilla": { lat: 10.9685, lng: -74.7813 },
+        "Montería": { lat: 8.7479, lng: -75.8814 },
+        "Pereira": { lat: 4.8133, lng: -75.6961 }
+    };
+
+    // LLAVE ÚNICA GLOBAL ACUMULATIVA
     let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_global')) || {
         "distribuidora_ubate": {
             password: "Admin123*",
+            departamento: "Cundinamarca",
             ciudad: "Ubaté",
             direccion: "Bodega 1 Principal",
             logo: "https://cdn-icons-png.flaticon.com/512/2897/2897785.png",
@@ -50,6 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formRegister = document.getElementById('form-register');
     const mensajeAuth = document.getElementById('mensaje-auth');
 
+    const regDepartamento = document.getElementById('reg-departamento');
     const regCiudad = document.getElementById('reg-ciudad');
     const regLat = document.getElementById('reg-lat');
     const regLng = document.getElementById('reg-lng');
@@ -67,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalPerfil = document.getElementById('modal-perfil');
     const btnCerrarPerfil = document.getElementById('btn-cerrar-perfil');
     const formEditarPerfil = document.getElementById('form-editar-perfil');
+    const perfilDepartamento = document.getElementById('perfil-departamento');
     const perfilCiudad = document.getElementById('perfil-ciudad');
     const perfilDireccion = document.getElementById('perfil-direccion');
     const perfilLogo = document.getElementById('perfil-logo');
@@ -103,11 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const grupoVencimientoMov = document.getElementById('grupo-vencimiento-mov');
     const btnCerrarModal = document.getElementById('btn-cerrar-modal');
 
-    const btnReportes = document.getElementById('btn-reportes');
-    const modalReportes = document.getElementById('modal-reportes');
-    const btnCerrarReportes = document.getElementById('btn-cerrar-reportes');
-    const tablaReportesBody = document.getElementById('tabla-reportes-body');
-
     function guardarEnStorage() {
         localStorage.setItem('bd_logistica_ubate_global', JSON.stringify(baseDeDatosUsuarios));
         localStorage.setItem('cola_sync_ubate_global', JSON.stringify(colaSincronizacion));
@@ -118,6 +140,33 @@ document.addEventListener('DOMContentLoaded', () => {
         mensajeAuth.className = tipo;
         mensajeAuth.classList.remove('hidden');
     }
+
+    // === GESTIÓN DE SELECTORES DINÁMICOS DE COLOMBIA ===
+    function configurarSelectores(selectDepto, selectMun) {
+        selectDepto.addEventListener('change', () => {
+            const depto = selectDepto.value;
+            selectMun.innerHTML = '<option value="">Seleccione un municipio...</option>';
+            if (municipiosDeColombia[depto]) {
+                municipiosDeColombia[depto].forEach(muni => {
+                    const opt = document.createElement('option');
+                    opt.value = muni;
+                    opt.textContent = muni;
+                    selectMun.appendChild(opt);
+                });
+            }
+        });
+    }
+
+    configurarSelectores(regDepartamento, regCiudad);
+    configurarSelectores(perfilDepartamento, perfilCiudad);
+
+    regCiudad.addEventListener('change', () => {
+        const muni = regCiudad.value;
+        const coords = coordenadasBaseSedes[muni] || { lat: 4.6097, lng: -74.0817 };
+        if (mapaRegistro) {
+            mapaRegistro.setView([coords.lat, coords.lng], 13);
+        }
+    });
 
     tabLogin.addEventListener('click', () => {
         tabLogin.classList.add('active');
@@ -140,11 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function inicializarMapaRegistro() {
-        const ciudadSel = regCiudad.value;
-        const coordsBase = coordenadasBaseSedes[ciudadSel] || { lat: 5.3114, lng: -73.8169 };
-
         if (!mapaRegistro) {
-            mapaRegistro = L.map('mapa-registro').setView([coordsBase.lat, coordsBase.lng], 14);
+            mapaRegistro = L.map('mapa-registro').setView([5.3114, -73.8169], 13);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '© OpenStreetMap'
@@ -165,19 +211,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         } else {
-            mapaRegistro.setView([coordsBase.lat, coordsBase.lng], 14);
             mapaRegistro.invalidateSize();
         }
     }
 
-    regCiudad.addEventListener('change', () => {
-        inicializarMapaRegistro();
-    });
-
-    // === REGISTRO DE NUEVA EMPRESA (ACUMULATIVO) ===
+    // === REGISTRO DE EMPRESA (ACUMULATIVO) ===
     formRegister.addEventListener('submit', (e) => {
         e.preventDefault();
         const nuevoUsuario = document.getElementById('reg-usuario').value.trim();
+        const nuevoDepto = regDepartamento.value;
         const nuevaCiudad = regCiudad.value;
         const nuevaDireccion = document.getElementById('reg-direccion').value.trim();
         const nuevoLogo = document.getElementById('reg-logo').value.trim() || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
@@ -185,7 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const lat = parseFloat(regLat.value);
         const lng = parseFloat(regLng.value);
 
-        if (!nuevoUsuario || !nuevaPassword || !nuevaDireccion) return;
+        if (!nuevoUsuario || !nuevaPassword || !nuevaDireccion || !nuevoDepto || !nuevaCiudad) return;
 
         if (isNaN(lat) || isNaN(lng)) {
             alert("⚠️ Por favor haz clic en el mapa de registro para seleccionar la ubicación exacta de tu empresa.");
@@ -205,6 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         baseDeDatosUsuarios[nuevoUsuario] = {
             password: nuevaPassword,
+            departamento: nuevoDepto,
             ciudad: nuevaCiudad,
             direccion: nuevaDireccion,
             logo: nuevoLogo,
@@ -258,6 +301,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         if (!usrData) return;
 
+        perfilDepartamento.value = usrData.departamento || "Cundinamarca";
+        // Disparar evento para poblar municipios
+        perfilDepartamento.dispatchEvent(new Event('change'));
         perfilCiudad.value = usrData.ciudad || "Ubaté";
         perfilDireccion.value = usrData.direccion || "";
         perfilLogo.value = usrData.logo || "";
@@ -272,12 +318,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         if (!usrData) return;
 
+        usrData.departamento = perfilDepartamento.value;
         usrData.ciudad = perfilCiudad.value;
         usrData.direccion = perfilDireccion.value.trim();
         usrData.logo = perfilLogo.value.trim();
 
         guardarEnStorage();
-        lblCiudadUsuario.textContent = usrData.ciudad;
+        lblCiudadUsuario.textContent = `${usrData.ciudad}, ${usrData.departamento}`;
         modalPerfil.classList.add('hidden');
         alert("¡Perfil de empresa actualizado con éxito!");
     });
@@ -286,7 +333,8 @@ document.addEventListener('DOMContentLoaded', () => {
         pantallaLogin.classList.add('hidden');
         pantallaApp.classList.remove('hidden');
         nombreUsuarioActivo.textContent = usuarioSesionActiva;
-        lblCiudadUsuario.textContent = baseDeDatosUsuarios[usuarioSesionActiva].ciudad || "Ubaté";
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        lblCiudadUsuario.textContent = `${usrData.ciudad || "Ubaté"}, ${usrData.departamento || "Cundinamarca"}`;
         actualizarEstadoRed();
         renderizarTabla();
     }
@@ -306,7 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // === MAPA GENERAL CON TODAS LAS EMPRESAS ACUMULADAS Y SUS LOGOS ===
+    // === MAPA GENERAL NACIONAL ACUMULATIVO ===
     function inicializarMapaPrincipal() {
         setTimeout(() => {
             const dataUsuarioActual = baseDeDatosUsuarios[usuarioSesionActiva];
@@ -314,13 +362,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const lngCentro = dataUsuarioActual ? dataUsuarioActual.lng : -73.8169;
 
             if (!mapaPrincipal) {
-                mapaPrincipal = L.map('mapa-sedes').setView([latCentro, lngCentro], 14);
+                mapaPrincipal = L.map('mapa-sedes').setView([latCentro, lngCentro], 6);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: '© OpenStreetMap'
                 }).addTo(mapaPrincipal);
             } else {
-                mapaPrincipal.setView([latCentro, lngCentro], 14);
+                mapaPrincipal.setView([latCentro, lngCentro], 6);
                 mapaPrincipal.invalidateSize();
             }
 
@@ -330,11 +378,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Recorre TODAS las empresas guardadas en la base global para mostrarlas juntas
             Object.keys(baseDeDatosUsuarios).forEach(usr => {
                 const dataUsr = baseDeDatosUsuarios[usr];
                 const lat = dataUsr.lat || 5.3114;
                 const lng = dataUsr.lng || -73.8169;
+                const depto = dataUsr.departamento || "Cundinamarca";
                 const ciudad = dataUsr.ciudad || "Ubaté";
                 const direccion = dataUsr.direccion || "Ubicación sede";
                 const logo = dataUsr.logo || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
@@ -349,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <strong style="color:${esUsuarioActual ? '#dc2626' : '#2563eb'}; font-size:1rem;">
                             ${usr.toUpperCase()} ${esUsuarioActual ? '(Tu Empresa)' : ''}
                         </strong><br>
-                        <p style="margin:4px 0; font-size:0.85rem;">Ciudad: <strong>${ciudad}</strong></p>
+                        <p style="margin:4px 0; font-size:0.85rem;">Ubicación: <strong>${ciudad}, ${depto}</strong></p>
                         <p style="margin:4px 0; font-size:0.85rem;">Ref: ${direccion}</p>
                         <p style="margin:0; font-size:0.85rem; font-weight:bold; color:#16a34a;">Productos: ${totalProd}</p>
                     </div>
@@ -389,7 +437,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <thead>
                     <tr>
                         <th>Empresa</th>
-                        <th>Ciudad / Ref</th>
+                        <th>Ubicación (Depto / Municipio)</th>
                         <th>Precio Unitario</th>
                         <th>Stock</th>
                     </tr>
@@ -410,7 +458,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 encontrado = true;
                 if (prodEnSede.precio < mejorPrecio) {
                     mejorPrecio = prodEnSede.precio;
-                    mejorSede = `${usr} (${dataUsr.ciudad})`;
+                    mejorSede = `${usr} (${dataUsr.ciudad}, ${dataUsr.departamento})`;
                 }
 
                 comparativaHTML += `
@@ -421,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <strong>${usr}</strong>
                             </div>
                         </td>
-                        <td>${dataUsr.ciudad}<br><small style="color:#6b7280;">${dataUsr.direccion}</small></td>
+                        <td><strong>${dataUsr.ciudad} (${dataUsr.departamento})</strong><br><small style="color:#6b7280;">${dataUsr.direccion}</small></td>
                         <td style="font-weight:bold; color:#16a34a;">$ ${prodEnSede.precio.toLocaleString()} COP</td>
                         <td>${prodEnSede.stock} un.</td>
                     </tr>
@@ -434,7 +482,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (encontrado) {
             comparativaHTML = `
                 <div style="background:#f0fdf4; border:1px solid #86efac; padding:10px; border-radius:8px; margin-bottom:12px; color:#15803d; font-size:0.9rem;">
-                    💡 <strong>Recomendación Logística:</strong> El mejor precio para <strong>${productoSeleccionado}</strong> lo ofrece <strong>${mejorSede}</strong> a solo <strong>$ ${mejorPrecio.toLocaleString()} COP</strong>.
+                    💡 <strong>Recomendación Logística Nacional:</strong> El mejor precio para <strong>${productoSeleccionado}</strong> lo ofrece <strong>${mejorSede}</strong> a solo <strong>$ ${mejorPrecio.toLocaleString()} COP</strong>.
                 </div>
             ` + comparativaHTML;
         } else {
@@ -452,12 +500,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function actualizarEstadoRed() {
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        const ubicacion = usrData ? `${usrData.ciudad}, ${usrData.departamento}` : "Colombia";
         if (modoOnline) {
             estadoConexion.className = "badge";
-            estadoConexion.innerHTML = `<i class="fa-solid fa-wifi"></i> Online | <strong>${usuarioSesionActiva}</strong>`;
+            estadoConexion.innerHTML = `<i class="fa-solid fa-wifi"></i> Online | <strong>${usuarioSesionActiva}</strong> (${ubicacion})`;
         } else {
             estadoConexion.className = "badge offline";
-            estadoConexion.innerHTML = `<i class="fa-solid fa-ban"></i> Offline | <strong>${usuarioSesionActiva}</strong>`;
+            estadoConexion.innerHTML = `<i class="fa-solid fa-ban"></i> Offline | <strong>${usuarioSesionActiva}</strong> (${ubicacion})`;
         }
     }
 
@@ -619,7 +669,6 @@ document.addEventListener('DOMContentLoaded', () => {
         renderizarTabla();
     });
 
-    // Auto-login si ya había una sesión activa en este dispositivo
     if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
         iniciarApp();
     }
