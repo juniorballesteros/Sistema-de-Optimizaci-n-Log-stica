@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Coordenadas base por defecto para centrar el mini mapa de registro según la ciudad elegida
     const coordenadasBaseSedes = {
         "Ubaté": { lat: 5.3114, lng: -73.8169 },
         "Bogotá": { lat: 4.6097, lng: -74.0817 },
@@ -8,11 +7,12 @@ document.addEventListener('DOMContentLoaded', () => {
         "Montería": { lat: 8.7479, lng: -75.8814 }
     };
 
-    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v6')) || {
-        "admin_ubate": {
+    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v7')) || {
+        "distribuidora_ubate": {
             password: "Admin123*",
             ciudad: "Ubaté",
             direccion: "Calle Principal # 4-20",
+            logo: "https://cdn-icons-png.flaticon.com/512/2897/2897785.png",
             lat: 5.3114,
             lng: -73.8169,
             inventario: [
@@ -33,9 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v6') || null;
+    let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v7') || null;
     let modoOnline = true;
-    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v6')) || [];
+    let colaSincronizacion = JSON.parse(localStorage.getItem('cola_sync_ubate_v7')) || [];
     let mapaPrincipal = null;
     let mapaRegistro = null;
     let marcadorRegistro = null;
@@ -100,8 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tablaReportesBody = document.getElementById('tabla-reportes-body');
 
     function guardarEnStorage() {
-        localStorage.setItem('bd_logistica_ubate_v6', JSON.stringify(baseDeDatosUsuarios));
-        localStorage.setItem('cola_sync_ubate_v6', JSON.stringify(colaSincronizacion));
+        localStorage.setItem('bd_logistica_ubate_v7', JSON.stringify(baseDeDatosUsuarios));
+        localStorage.setItem('cola_sync_ubate_v7', JSON.stringify(colaSincronizacion));
     }
 
     function mostrarMensaje(msg, tipo) {
@@ -125,13 +125,11 @@ document.addEventListener('DOMContentLoaded', () => {
         formLogin.classList.add('hidden');
         mensajeAuth.classList.add('hidden');
 
-        // Inicializar mini mapa interactivo al abrir la pestaña de registro
         setTimeout(() => {
             inicializarMapaRegistro();
         }, 300);
     });
 
-    // === MINI MAPA INTERACTIVO PARA SELECCIONAR UBICACIÓN EN REGISTRO ===
     function inicializarMapaRegistro() {
         const ciudadSel = regCiudad.value;
         const coordsBase = coordenadasBaseSedes[ciudadSel] || { lat: 5.3114, lng: -73.8169 };
@@ -143,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 attribution: '© OpenStreetMap'
             }).addTo(mapaRegistro);
 
-            // Evento click en el mapa de registro para fijar el marcador exacto
             mapaRegistro.on('click', (e) => {
                 const lat = e.latlng.lat;
                 const lng = e.latlng.lng;
@@ -168,12 +165,13 @@ document.addEventListener('DOMContentLoaded', () => {
         inicializarMapaRegistro();
     });
 
-    // === REGISTRO DE NUEVA SEDE CON COORDENADAS EXACTAS DEL MAPA ===
+    // === REGISTRO DE EMPRESA CON LOGO Y COORDENADAS ===
     formRegister.addEventListener('submit', (e) => {
         e.preventDefault();
-        const nuevoUsuario = document.getElementById('reg-usuario').value.trim().toLowerCase();
+        const nuevoUsuario = document.getElementById('reg-usuario').value.trim();
         const nuevaCiudad = regCiudad.value;
         const nuevaDireccion = document.getElementById('reg-direccion').value.trim();
+        const nuevoLogo = document.getElementById('reg-logo').value.trim() || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
         const nuevaPassword = document.getElementById('reg-password').value.trim();
         const lat = parseFloat(regLat.value);
         const lng = parseFloat(regLng.value);
@@ -186,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (baseDeDatosUsuarios[nuevoUsuario]) {
-            mostrarMensaje("El nombre de usuario ya existe. Elige otro.", "error");
+            mostrarMensaje("El nombre de la empresa ya existe. Elige otro.", "error");
             return;
         }
 
@@ -200,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
             password: nuevaPassword,
             ciudad: nuevaCiudad,
             direccion: nuevaDireccion,
+            logo: nuevoLogo,
             lat: lat,
             lng: lng,
             inventario: [],
@@ -207,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         guardarEnStorage();
-        mostrarMensaje("¡Sede y ubicación exacta registrada con éxito!", "exito");
+        mostrarMensaje("¡Empresa y perfil registrados con éxito!", "exito");
         formRegister.reset();
         regLat.value = '';
         regLng.value = '';
@@ -224,12 +223,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     formLogin.addEventListener('submit', (e) => {
         e.preventDefault();
-        const usr = document.getElementById('usuario').value.trim().toLowerCase();
+        const usr = document.getElementById('usuario').value.trim();
         const pass = document.getElementById('password').value.trim();
 
         if (baseDeDatosUsuarios[usr] && baseDeDatosUsuarios[usr].password === pass) {
             usuarioSesionActiva = usr;
-            localStorage.setItem('sesion_activa_ubate_v6', usr);
+            localStorage.setItem('sesion_activa_ubate_v7', usr);
             iniciarApp();
         } else {
             mostrarMensaje("Usuario o contraseña incorrectos.", "error");
@@ -238,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     btnLogout.addEventListener('click', () => {
         usuarioSesionActiva = null;
-        localStorage.removeItem('sesion_activa_ubate_v6');
+        localStorage.removeItem('sesion_activa_ubate_v7');
         pantallaApp.classList.add('hidden');
         pantallaLogin.classList.remove('hidden');
         formLogin.reset();
@@ -269,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // === MAPA GENERAL DE TODAS LAS EMPRESAS REGISTRADAS ===
+    // === MAPA GENERAL CON LOS LOGOS E IMÁGENES DE CADA EMPRESA ===
     function inicializarMapaPrincipal() {
         setTimeout(() => {
             const dataUsuarioActual = baseDeDatosUsuarios[usuarioSesionActiva];
@@ -293,26 +292,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Dibujar los pines exactos de cada una de las empresas registradas
             Object.keys(baseDeDatosUsuarios).forEach(usr => {
                 const dataUsr = baseDeDatosUsuarios[usr];
                 const lat = dataUsr.lat || 5.3114;
                 const lng = dataUsr.lng || -73.8169;
                 const ciudad = dataUsr.ciudad || "Ubaté";
                 const direccion = dataUsr.direccion || "Ubicación sede";
+                const logo = dataUsr.logo || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
                 const totalProd = dataUsr.inventario ? dataUsr.inventario.length : 0;
 
                 const esUsuarioActual = (usr === usuarioSesionActiva);
                 const marker = L.marker([lat, lng]).addTo(mapaPrincipal);
 
                 marker.bindPopup(`
-                    <div style="font-family:sans-serif;">
+                    <div style="font-family:sans-serif; text-align:center;">
+                        <img src="${logo}" alt="Logo" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #dc2626; margin-bottom:5px;"><br>
                         <strong style="color:${esUsuarioActual ? '#dc2626' : '#2563eb'}; font-size:1rem;">
-                            🏢 ${usr.toUpperCase()} ${esUsuarioActual ? '(Tu Empresa)' : ''}
+                            ${usr.toUpperCase()} ${esUsuarioActual ? '(Tu Empresa)' : ''}
                         </strong><br>
                         <p style="margin:4px 0; font-size:0.85rem;">Ciudad: <strong>${ciudad}</strong></p>
-                        <p style="margin:4px 0; font-size:0.85rem;">Referencia: <strong>${direccion}</strong></p>
-                        <p style="margin:0; font-size:0.85rem; font-weight:bold; color:#16a34a;">Productos en stock: ${totalProd}</p>
+                        <p style="margin:4px 0; font-size:0.85rem;">Ref: ${direccion}</p>
+                        <p style="margin:0; font-size:0.85rem; font-weight:bold; color:#16a34a;">Productos: ${totalProd}</p>
                     </div>
                 `);
 
@@ -349,9 +349,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <table class="tabla-inventario">
                 <thead>
                     <tr>
-                        <th>Empresa / Sede</th>
-                        <th>Ciudad</th>
-                        <th>Referencia</th>
+                        <th>Empresa</th>
+                        <th>Ciudad / Ref</th>
                         <th>Precio Unitario</th>
                         <th>Stock</th>
                     </tr>
@@ -366,19 +365,24 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.keys(baseDeDatosUsuarios).forEach(usr => {
             const dataUsr = baseDeDatosUsuarios[usr];
             const prodEnSede = dataUsr.inventario.find(p => p.nombre === productoSeleccionado);
+            const logo = dataUsr.logo || "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
 
             if (prodEnSede) {
                 encontrado = true;
                 if (prodEnSede.precio < mejorPrecio) {
                     mejorPrecio = prodEnSede.precio;
-                    mejorSede = `${usr} (${dataUsr.ciudad} - ${dataUsr.direccion})`;
+                    mejorSede = `${usr} (${dataUsr.ciudad})`;
                 }
 
                 comparativaHTML += `
                     <tr>
-                        <td><strong>${usr}</strong></td>
-                        <td>${dataUsr.ciudad || "Ubaté"}</td>
-                        <td style="font-size:0.8rem; color:#4b5563;">${dataUsr.direccion || "Sin dirección"}</td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <img src="${logo}" style="width:30px; height:30px; border-radius:50%; object-fit:cover; border:1px solid #d1d5db;">
+                                <strong>${usr}</strong>
+                            </div>
+                        </td>
+                        <td>${dataUsr.ciudad}<br><small style="color:#6b7280;">${dataUsr.direccion}</small></td>
                         <td style="font-weight:bold; color:#16a34a;">$ ${prodEnSede.precio.toLocaleString()} COP</td>
                         <td>${prodEnSede.stock} un.</td>
                     </tr>
@@ -391,11 +395,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (encontrado) {
             comparativaHTML = `
                 <div style="background:#f0fdf4; border:1px solid #86efac; padding:10px; border-radius:8px; margin-bottom:12px; color:#15803d; font-size:0.9rem;">
-                    💡 <strong>Recomendación Logística:</strong> El mejor precio para <strong>${productoSeleccionado}</strong> lo tiene <strong>${mejorSede}</strong> a solo <strong>$ ${mejorPrecio.toLocaleString()} COP</strong>.
+                    💡 <strong>Recomendación Logística:</strong> El mejor precio para <strong>${productoSeleccionado}</strong> lo ofrece <strong>${mejorSede}</strong> a solo <strong>$ ${mejorPrecio.toLocaleString()} COP</strong>.
                 </div>
             ` + comparativaHTML;
         } else {
-            comparativaHTML = `<p style="color:#dc2626;">Ninguna otra sede tiene registrado este producto.</p>`;
+            comparativaHTML = `<p style="color:#dc2626;">Ninguna otra empresa tiene registrado este producto.</p>`;
         }
 
         resultadoComparacion.innerHTML = comparativaHTML;
@@ -418,7 +422,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // === GESTIÓN DE PRODUCTOS E INVENTARIO ===
     formProducto.addEventListener('submit', (e) => {
         e.preventDefault();
         const id = prodId.value;
