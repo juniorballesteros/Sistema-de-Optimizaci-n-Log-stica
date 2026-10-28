@@ -307,47 +307,54 @@ document.addEventListener('DOMContentLoaded', () => {
         mensajeAuth.classList.add('hidden');
     });
 
-    // MÓDULO OCR: LECTURA AUTOMÁTICA DE FACTURA
+    // MÓDULO OCR: LECTURA ESTRICTA DE LA FOTO DE LA FACTURA
     btnProcesarOCR.addEventListener('click', async () => {
         const archivo = inputFotoFactura.files[0];
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+
         if (!archivo) {
-            alert("⚠️ Por favor selecciona o tómale una foto a la factura primero.");
+            alert("⚠️ Por favor selecciona o tómale una foto a la factura antes de procesarla.");
             return;
         }
 
-        estadoOCR.textContent = "⏳ Analizando foto de la factura automáticamente... Por favor espera.";
+        estadoOCR.innerHTML = "⏳ Analizando la factura con OCR... Leyendo productos y precios de la imagen...";
 
         try {
             const result = await Tesseract.recognize(archivo, 'spa', {
                 logger: m => {
                     if (m.status === 'recognizing text') {
-                        estadoOCR.textContent = `⏳ Procesando factura: ${Math.round(m.progress * 100)}%`;
+                        estadoOCR.innerHTML = `⏳ Escaneando factura: ${Math.round(m.progress * 100)}%`;
                     }
                 }
             });
 
             const textoExtraido = result.data.text;
+            console.log("Texto extraído de la factura:", textoExtraido);
+
             const lineas = textoExtraido.split('\n');
             let productosIngresados = 0;
-            const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
 
             lineas.forEach(linea => {
                 const numeros = linea.match(/\d+/g);
                 if (numeros && numeros.length >= 1) {
                     const costoBase = parseInt(numeros[numeros.length - 1]);
-                    const cantidad = numeros.length >= 2 ? parseInt(numeros[numeros.length - 2]) : 10;
+                    const cantidad = numeros.length >= 2 ? parseInt(numeros[numeros.length - 2]) : 1;
                     let descripcion = linea.replace(/[0-9]/g, '').trim();
 
-                    if (descripcion.length > 3 && costoBase > 1000) {
-                        const ivaProd = 19; // IVA por defecto configurable
-                        const margenProd = 30; // Margen por defecto configurable
+                    // Filtros estrictos para ignorar basura (NIT, teléfonos, totales, etc.)
+                    const textoMin = descripcion.toLowerCase();
+                    const esBasura = textoMin.includes('nit') || textoMin.includes('total') || textoMin.includes('subtotal') || textoMin.includes('iva') || textoMin.includes('dire_') || textoMin.includes('tel');
+
+                    if (descripcion.length > 3 && costoBase > 500 && !esBasura) {
+                        const ivaProd = 19; // IVA por defecto
+                        const margenProd = 30; // Margen por defecto
                         const precioFinalVenta = Math.round((costoBase * (1 + ivaProd / 100)) * (1 + margenProd / 100));
-                        const fechaDefecto = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                        const refAutogenerada = "REF-" + Math.floor(1000 + Math.random() * 9000);
+                        const fechaDefecto = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                        const refCode = "REF-" + Math.floor(1000 + Math.random() * 9000);
 
                         usrData.inventario.unshift({
-                            id: "prod_" + Date.now() + Math.random().toString(36).substring(2, 5),
-                            codigo: refAutogenerada,
+                            id: "prod_" + Date.now() + Math.random().toString(36).substring(2, 6),
+                            codigo: refCode,
                             nombre: descripcion,
                             stock: cantidad,
                             minimo: 5,
@@ -362,52 +369,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
+            // VALIDACIÓN ESTRICTA: SI LA FOTO NO FUE LEGIBLE O NO ARROJÓ PRODUCTOS VÁLIDOS
             if (productosIngresados > 0) {
                 guardarEnStorage();
                 renderizarTabla();
-                estadoOCR.innerHTML = `✅ <strong>¡Éxito!</strong> Se detectaron y llenaron automáticamente <strong>${productosIngresados} productos</strong> de la factura. Referencias asignadas y precios calculados.`;
+                estadoOCR.innerHTML = `✅ <strong>¡Éxito!</strong> Se leyeron e integraron <strong>${productosIngresados} productos</strong> reales de la foto de la factura.`;
+                inputFotoFactura.value = ''; // Limpiar input
             } else {
-                estadoOCR.innerHTML = `⚠️ No se leyeron líneas claras. Cargando factura de demostración automática...`;
-                ingresarFacturaDemostracion(usrData);
+                estadoOCR.innerHTML = `⚠️ <strong>Factura no legible o borrosa:</strong> No se pudieron extraer productos claros de esta foto. Por favor, <strong>toma la foto con mejor iluminación, más cerca y con mayor nitidez</strong> para que la aplicación pueda leerla correctamente.`;
             }
 
         } catch (err) {
             console.error(err);
-            estadoOCR.innerHTML = `⚠️ Error al escanear. Cargando demostración automática...`;
-            ingresarFacturaDemostracion(baseDeDatosUsuarios[usuarioSesionActiva]);
+            estadoOCR.innerHTML = `⚠️ <strong>Error de lectura:</strong> Ocurrió un problema procesando la imagen. Por favor asegúrate de que la foto tenga buena nitidez e inténtalo nuevamente.`;
         }
     });
-
-    function ingresarFacturaDemostracion(usrData) {
-        const demoProductos = [
-            { nombre: "Carne para Hamburguesa 120g", cantidad: 50, costo: 4500, iva: 19, margen: 30 },
-            { nombre: "Queso Cheddar Tajado x10", cantidad: 30, costo: 8200, iva: 19, margen: 25 },
-            { nombre: "Pan Hamburguesa Brioche x6", cantidad: 25, costo: 6000, iva: 5, margen: 35 }
-        ];
-
-        demoProductos.forEach(p => {
-            const precioFinal = Math.round((p.costo * (1 + p.iva / 100)) * (1 + p.margen / 100));
-            const fechaVenc = new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const refCode = "REF-" + Math.floor(1000 + Math.random() * 9000);
-
-            usrData.inventario.unshift({
-                id: "prod_" + Date.now() + Math.random().toString(36).substring(2, 4),
-                codigo: refCode,
-                nombre: p.nombre,
-                stock: p.cantidad,
-                minimo: 5,
-                costoCompra: p.costo,
-                ivaPorcentaje: p.iva,
-                margenPorcentaje: p.margen,
-                precio: precioFinal,
-                lotes: [{ idLote: "lote_" + Date.now(), cantidad: p.cantidad, fechaVencimiento: fechaVenc }]
-            });
-        });
-
-        guardarEnStorage();
-        renderizarTabla();
-        estadoOCR.innerHTML = `✅ <strong>Factura procesada automáticamente:</strong> 3 productos integrados con sus referencias, IVA y márgenes independientes.`;
-    }
 
     function iniciarApp() {
         pantallaLogin.classList.add('hidden');
@@ -607,9 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const ivaNum = parseFloat(prodIva.value);
         const margenNum = parseFloat(prodMargen.value);
 
-        // Cálculo del precio final con IVA y Margen independientes
         const precioFinal = Math.round((costoNum * (1 + ivaNum / 100)) * (1 + margenNum / 100));
-
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
 
         if (id) {
@@ -661,7 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const productosFiltrados = usrData.inventario.filter(p => p.nombre.toLowerCase().includes(filtro) || p.codigo.includes(filtro));
 
         if (productosFiltrados.length === 0) {
-            tablaBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:15px;">No hay productos registrados. Carga una factura arriba o regístralos manualmente.</td></tr>`;
+            tablaBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#6b7280; padding:15px;">No hay productos registrados. Carga una factura con foto o agrégalos manualmente.</td></tr>`;
             return;
         }
 
@@ -715,7 +689,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         const prod = usrData.inventario.find(p => p.id === id);
         if (!prod) return;
-        // Asignar al modal
         document.getElementById('mov-prod-id').value = prod.id;
         document.getElementById('mov-tipo').value = tipo;
         document.getElementById('mov-prod-nombre').value = prod.nombre;
