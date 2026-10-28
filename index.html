@@ -53,13 +53,13 @@
 
             <!-- FORMULARIO 2: REGISTRAR NUEVO USUARIO -->
             <form id="form-register" class="auth-form hidden">
-                <h3>Registrar Nueva Sede / Operador</h3>
+                <h3>Registrar Nueva Sede / Empresa</h3>
                 <div class="input-group">
                     <label for="reg-usuario">Nombre de Usuario:</label>
-                    <input type="text" id="reg-usuario" placeholder="Ej. gestor_bogota" required>
+                    <input type="text" id="reg-usuario" placeholder="Ej. gestor_ubate" required>
                 </div>
                 <div class="input-group">
-                    <label for="reg-ciudad">Ciudad / Sede de Distribución:</label>
+                    <label for="reg-ciudad">Ciudad Principal:</label>
                     <select id="reg-ciudad" required>
                         <option value="Ubaté">Ubaté (Cundinamarca)</option>
                         <option value="Bogotá">Bogotá D.C.</option>
@@ -69,9 +69,16 @@
                     </select>
                 </div>
                 <div class="input-group">
+                    <label for="reg-direccion">Dirección Exacta de la Empresa / Bodega:</label>
+                    <input type="text" id="reg-direccion" placeholder="Ej. Calle 4 # 4-20, Ubaté" required>
+                    <small style="color: #6b7280; font-size: 0.75rem; display: block; margin-top: 2px;">
+                        📍 Esta dirección se usará para ubicar el pin exacto en el mapa.
+                    </small>
+                </div>
+                <div class="input-group">
                     <label for="reg-password">Nueva Contraseña:</label>
                     <input type="password" id="reg-password" placeholder="Mín. 6 chars, 1 mayúscula, 1 especial" required>
-                    <small style="color: #6b7280; font-size: 0.75rem; display: block; margin-top: 4px;">
+                    <small style="color: #6b7280; font-size: 0.75rem; display: block; margin-top: 2px;">
                         ⚠️ Al menos 1 mayúscula y 1 carácter especial o número (ej. @, $, !, %).
                     </small>
                 </div>
@@ -82,7 +89,7 @@
         </section>
     </div>
 
-    <!-- PANTALLA 2: MÓDULO PRINCIPAL (INVENTARIO + MAPA + COMPARADOR) -->
+    <!-- PANTALLA 2: MÓDULO PRINCIPAL -->
     <div id="pantalla-app" class="container hidden">
         <header class="header-app">
             <div>
@@ -107,11 +114,11 @@
             </div>
         </header>
 
-        <!-- SECCIÓN 1: MAPA NACIONAL DE DISTRIBUIDORAS -->
+        <!-- SECCIÓN 1: MAPA NACIONAL CON DIRECCIÓN EXACTA -->
         <section id="seccion-mapa" class="card hidden">
-            <h3><i class="fa-solid fa-map"></i> Mapa de Centros de Distribución Activos</h3>
+            <h3><i class="fa-solid fa-map"></i> Mapa de Centros de Distribución y Bodegas</h3>
             <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 10px;">
-                Visualiza en tiempo real las sedes registradas en Ubaté y otras ciudades del país.
+                Ubicación geolocalizada exacta de cada empresa según la dirección registrada.
             </p>
             <div id="mapa-sedes" style="width: 100%; height: 320px; border-radius: 8px; z-index: 1;"></div>
         </section>
@@ -120,18 +127,16 @@
         <section id="seccion-comparador" class="card hidden">
             <h3><i class="fa-solid fa-comments-dollar"></i> Comparador de Precios entre Sedes</h3>
             <p style="font-size: 0.85rem; color: #4b5563; margin-bottom: 12px;">
-                Compara los costos de los productos registrados en Ubaté frente a Bogotá y otras ciudades para identificar dónde abastecerse más económico.
+                Compara los costos de los productos entre Ubaté, Bogotá y otras ciudades para identificar dónde comprar más económico.
             </p>
             <div class="input-group" style="max-width: 350px;">
                 <label for="select-producto-comparar">Selecciona el Alimento a Comparar:</label>
                 <select id="select-producto-comparar"></select>
             </div>
-            <div id="resultado-comparacion" style="margin-top: 15px;">
-                <!-- Resultados dinámicos de comparación -->
-            </div>
+            <div id="resultado-comparacion" style="margin-top: 15px;"></div>
         </section>
 
-        <!-- Formulario para registrar o modificar productos con lote inicial -->
+        <!-- Formulario para registrar productos -->
         <section id="seccion-inventario-form" class="card">
             <h3 id="titulo-form-producto"><i class="fa-solid fa-pen-to-square"></i> Registrar Nuevo Producto Alimentario con Lote</h3>
             <form id="form-producto" class="grid-form">
@@ -168,11 +173,10 @@
             </form>
         </section>
 
-        <!-- Catálogo de Suministros y Alertas de Vencimiento -->
+        <!-- Catálogo de Suministros -->
         <section id="seccion-inventario-tabla" class="card">
             <div class="acciones-superiores">
                 <h3><i class="fa-solid fa-list-check"></i> Catálogo de Suministros y Detalle de Lotes</h3>
-                
                 <div class="search-box">
                     <i class="fa-solid fa-barcode"></i>
                     <input type="text" id="input-buscar" placeholder="Escanea o busca por Código / Nombre...">
@@ -190,19 +194,17 @@
                         <th>Acciones</th>
                     </tr>
                 </thead>
-                <tbody id="tabla-body">
-                    <!-- Filas cargadas dinámicamente -->
-                </tbody>
+                <tbody id="tabla-body"></tbody>
             </table>
         </section>
 
         <footer class="footer-creditos">
-            <p><strong>Proyecto de Aula:</strong> Sistema de Gestión de Inventarios y Lotes v2.0</p>
+            <p><strong>Proyecto de Aula:</strong> Sistema de Gestión de Inventarios y Lotes v2.1</p>
             <p>Desarrollado por el equipo de ingeniería | Ubaté - 2026</p>
         </footer>
     </div>
 
-    <!-- MODAL PARA REGISTRAR ENTRADA CON LOTE / SALIDA FIFO -->
+    <!-- MODAL MOVIMIENTO -->
     <div id="modal-movimiento" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
@@ -212,47 +214,36 @@
             <form id="form-movimiento">
                 <input type="hidden" id="mov-prod-id">
                 <input type="hidden" id="mov-tipo">
-                
                 <div class="input-group">
                     <label>Producto Seleccionado:</label>
                     <input type="text" id="mov-prod-nombre" readonly style="background:#e5e7eb; font-weight:bold;">
                 </div>
-                
                 <div class="input-group">
                     <label for="mov-cantidad">Cantidad de Unidades:</label>
                     <input type="number" id="mov-cantidad" min="1" placeholder="Ingrese cantidad" required>
                 </div>
-
                 <div class="input-group" id="grupo-vencimiento-mov">
                     <label for="mov-vencimiento">Fecha de Vencimiento de este Nuevo Lote:</label>
                     <input type="date" id="mov-vencimiento">
                 </div>
-
                 <p id="mov-alerta-fifo" style="color: #2563eb; font-size: 0.85rem; margin-bottom: 10px;" class="hidden">
                     ℹ️ <strong>Estrategia FIFO:</strong> Las unidades saldrán automáticamente del lote más próximo a vencer.
                 </p>
-
                 <p id="mov-alerta-stock" style="color: #dc2626; font-weight: bold; margin-bottom: 10px;" class="hidden">
-                    ⚠️ Error: La cantidad de salida supera el stock actual disponible.
+                    ⚠️ Error: La cantidad supera el stock disponible.
                 </p>
-
                 <button type="submit" id="btn-guardar-mov" class="btn-primary">Confirmar Transacción</button>
             </form>
         </div>
     </div>
 
-    <!-- MODAL DE REPORTES E HISTORIAL -->
+    <!-- MODAL REPORTES -->
     <div id="modal-reportes" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fa-solid fa-file-invoice"></i> Reportes de Stock, Lotes e Historial</h3>
+                <h3><i class="fa-solid fa-file-invoice"></i> Reportes de Stock e Historial</h3>
                 <button class="btn-close" id="btn-cerrar-reportes">&times;</button>
             </div>
-            
-            <p style="margin-bottom: 15px; color:#4b5563;">
-                Trazabilidad cronológica de entradas, salidas y vencimiento de lotes para decisiones de abastecimiento.
-            </p>
-
             <table class="tabla-inventario">
                 <thead>
                     <tr>
@@ -263,26 +254,18 @@
                         <th>Cantidad / Vencimiento</th>
                     </tr>
                 </thead>
-                <tbody id="tabla-reportes-body">
-                    <!-- Trazabilidad dinámica -->
-                </tbody>
+                <tbody id="tabla-reportes-body"></tbody>
             </table>
         </div>
     </div>
 
-    <!-- Leaflet JS para el Mapa Interactivo -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-    <!-- Script de lógica de la app -->
     <script src="script.js"></script>
-
-    <!-- Registro automático de la PWA (App Móvil) -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('PWA Service Worker registrado con éxito:', reg.scope))
-                    .catch(err => console.error('Error al registrar Service Worker PWA:', err));
+                navigator.serviceWorker.register('./sw.js').catch(err => console.error(err));
             });
         }
     </script>
