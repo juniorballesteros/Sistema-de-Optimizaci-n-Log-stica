@@ -58,14 +58,11 @@ document.addEventListener('DOMContentLoaded', () => {
             password: "Admin123*",
             departamento: "Cundinamarca",
             ciudad: "Bogotá D.C.",
-            vehiculo: "Turbo Chevrolet NPR (Furgón)",
+            vehiculo: "Chevrolet NPR Furgón 4.5 Ton",
             placa: "SXX-123",
             logo: "https://cdn-icons-png.flaticon.com/512/2972/2972195.png",
             lat: 4.6200,
-            lng: -74.0900,
-            viajesDisponibles: [
-                { id: "viaje_1", origen: "Bogotá D.C.", destino: "Ubaté", carga: "Queso Doble Crema (Lote 50 un.)", estado: "Disponible" }
-            ]
+            lng: -74.0900
         }
     };
 
@@ -96,6 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const regRol = document.getElementById('reg-rol');
     const camposConductor = document.getElementById('campos-conductor');
     const grupoDireccion = document.getElementById('grupo-direccion');
+    const regDireccion = document.getElementById('reg-direccion');
+    const regVehiculo = document.getElementById('reg-vehiculo');
+    const regPlaca = document.getElementById('reg-placa');
+
     const regDepartamento = document.getElementById('reg-departamento');
     const regCiudad = document.getElementById('reg-ciudad');
     const regLat = document.getElementById('reg-lat');
@@ -141,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const perfilDepartamento = document.getElementById('perfil-departamento');
     const perfilCiudad = document.getElementById('perfil-ciudad');
     const perfilDireccion = document.getElementById('perfil-direccion');
+    const grupoDirPerfil = document.getElementById('grupo-dir-perfil');
     const perfilLogoFile = document.getElementById('perfil-logo-file');
     const previewPerfilLogo = document.getElementById('preview-perfil-logo');
 
@@ -158,9 +160,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (regRol.value === 'conductor') {
             camposConductor.classList.remove('hidden');
             grupoDireccion.style.display = 'none';
+            regDireccion.removeAttribute('required');
+            regVehiculo.setAttribute('required', 'true');
+            regPlaca.setAttribute('required', 'true');
         } else {
             camposConductor.classList.add('hidden');
             grupoDireccion.style.display = 'flex';
+            regDireccion.setAttribute('required', 'true');
+            regVehiculo.removeAttribute('required');
+            regPlaca.removeAttribute('required');
         }
     });
 
@@ -282,11 +290,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (rol === 'conductor') {
-            nuevoUsuario.vehiculo = document.getElementById('reg-vehiculo').value;
-            nuevoUsuario.placa = document.getElementById('reg-placa').value.trim() || "SXX-000";
-            nuevoUsuario.viajesDisponibles = [];
+            nuevoUsuario.vehiculo = regVehiculo.value.trim() || "Turbo Particular";
+            nuevoUsuario.placa = regPlaca.value.trim().toUpperCase() || "SXX-000";
         } else {
-            nuevoUsuario.direccion = document.getElementById('reg-direccion').value.trim();
+            nuevoUsuario.direccion = regDireccion.value.trim() || "Bodega Central";
             nuevoUsuario.inventario = [];
         }
 
@@ -539,7 +546,13 @@ document.addEventListener('DOMContentLoaded', () => {
         perfilDepartamento.value = usrData.departamento || "Cundinamarca";
         perfilDepartamento.dispatchEvent(new Event('change'));
         setTimeout(() => perfilCiudad.value = usrData.ciudad || "", 50);
-        perfilDireccion.value = usrData.direccion || "";
+
+        if (usrData.rol === 'conductor') {
+            grupoDirPerfil.style.display = 'none';
+        } else {
+            grupoDirPerfil.style.display = 'flex';
+            perfilDireccion.value = usrData.direccion || "";
+        }
         modalPerfil.classList.remove('hidden');
     }
 
@@ -777,7 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let html = `<table class="tabla-inventario"><thead><tr><th>Empresa</th><th>Ubicación</th><th>Precio Público</th><th>Acción Flete</th></tr></thead><tbody>`;
         let mejorPrecio = Infinity;
-        let mejorSedeNombre = "";
+        let mejorSedeName = "";
 
         Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
             const usr = baseDeDatosUsuarios[usrKey];
@@ -786,7 +799,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (prod) {
                     if (prod.precio < mejorPrecio) {
                         mejorPrecio = prod.precio;
-                        mejorSedeNombre = usr.nombreOriginal;
+                        mejorSedeName = usr.nombreOriginal;
                     }
                     html += `
                         <tr>
@@ -802,7 +815,7 @@ document.addEventListener('DOMContentLoaded', () => {
         html += `</tbody></table>`;
 
         if (mejorPrecio !== Infinity) {
-            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Precio:</strong> ${mejorSedeName = mejorSedeNombre} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong>. Puedes solicitar un flete con un transportador en el mapa.</div>` + html;
+            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Precio:</strong> ${mejorSedeName} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong>. Puedes solicitar un flete con un transportador en el mapa.</div>` + html;
         }
         resultadoComparacion.innerHTML = html;
     }

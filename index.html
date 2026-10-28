@@ -23,7 +23,7 @@
 </head>
 <body class="gmaps-layout">
 
-    <!-- PANTALLA 1: INICIO DE SESIÓN / REGISTRO CON SELECCIÓN DE ROL -->
+    <!-- PANTALLA 1: INICIO DE SESIÓN / REGISTRO -->
     <div id="pantalla-login" class="login-screen-overlay">
         <div class="login-modal-card">
             <header class="login-header">
@@ -50,7 +50,7 @@
                 <button type="submit" class="btn-primary">Ingresar al Sistema</button>
             </form>
 
-            <!-- FORMULARIO REGISTRAR USUARIO (CON OPCIÓN DE ROL EMPRESA O CONDUCTOR) -->
+            <!-- FORMULARIO REGISTRAR USUARIO -->
             <form id="form-register" class="auth-form hidden">
                 <div class="input-group">
                     <label for="reg-rol">Seleccionar Tipo de Cuenta (Rol):</label>
@@ -89,16 +89,11 @@
                     </div>
                 </div>
 
-                <!-- CAMPOS ADICIONALES SI ES CONDUCTOR -->
+                <!-- CAMPOS LIBRES PARA CONDUCTOR -->
                 <div id="campos-conductor" class="hidden" style="background:#fef2f2; padding:10px; border-radius:8px; border:1px solid #fca5a5; margin-bottom:10px;">
                     <div class="input-group">
-                        <label for="reg-vehiculo">Tipo de Vehículo de Carga:</label>
-                        <select id="reg-vehiculo">
-                            <option value="Turbo Chevrolet NPR (Furgón)">Turbo Chevrolet NPR (Furgón)</option>
-                            <option value="Camión Turbo Hino 3.5 Ton">Camión Turbo Hino 3.5 Ton</option>
-                            <option value="Van de Carga Liviana">Van de Carga Liviana</option>
-                            <option value="Camión sencillo 6 Ton">Camión sencillo 6 Ton</option>
-                        </select>
+                        <label for="reg-vehiculo">Escribe tu Tipo de Turbo / Vehículo:</label>
+                        <input type="text" id="reg-vehiculo" placeholder="Ej. Chevrolet NPR Furgón 4.5 Ton">
                     </div>
                     <div class="input-group">
                         <label for="reg-placa">Placa del Vehículo:</label>
@@ -108,7 +103,7 @@
 
                 <div class="input-group" id="grupo-direccion">
                     <label for="reg-direccion">Referencia o Dirección de la Bodega / Base:</label>
-                    <input type="text" id="reg-direccion" placeholder="Ej. Bodega 1 Principal" required>
+                    <input type="text" id="reg-direccion" placeholder="Ej. Bodega 1 Principal">
                 </div>
 
                 <div class="input-group">
@@ -167,7 +162,7 @@
             <button id="btn-logout-fab" class="fab-btn fab-danger" title="Cerrar Sesión"><i class="fa-solid fa-power-off"></i></button>
         </div>
 
-        <!-- HOJA DESLIZABLE INFERIOR: GESTIÓN DE PRODUCTOS / BOLSA DE CARGA -->
+        <!-- HOJA DESLIZABLE INFERIOR -->
         <div id="sheet-productos" class="sliding-sheet hidden">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
@@ -176,15 +171,15 @@
             </div>
             
             <div class="sheet-content" id="sheet-content-body">
-                <!-- CONTENIDO DINÁMICO SEGÚN ROL (EMPRESA O CONDUCTOR) -->
+                <!-- CONTENIDO DINÁMICO -->
             </div>
         </div>
 
-        <!-- HOJA DESLIZABLE INFERIOR: COMPARADOR DE PRECIOS -->
+        <!-- HOJA DESLIZABLE INFERIOR: COMPARADOR -->
         <div id="sheet-comparador" class="sliding-sheet hidden">
             <div class="sheet-handle"></div>
             <div class="sheet-header">
-                <h3><i class="fa-solid fa-scale-balanced"></i> Comparador de Precios y Solicitud de Flete</h3>
+                <h3><i class="fa-solid fa-scale-balanced"></i> Comparador de Precios y Fletes</h3>
                 <button class="btn-close-sheet" id="btn-cerrar-comparador">&times;</button>
             </div>
             <div class="sheet-content">
@@ -217,7 +212,7 @@
         </nav>
     </div>
 
-    <!-- MODAL DE PRE-REVISIÓN Y AUDITORÍA DE FACTURA OCR -->
+    <!-- MODAL DE AUDITORÍA OCR -->
     <div id="modal-auditoria-factura" class="modal hidden">
         <div class="modal-content" style="max-width: 800px;">
             <div class="modal-header">
@@ -277,9 +272,9 @@
                         <option value="">Seleccione municipio...</option>
                     </select>
                 </div>
-                <div class="input-group">
+                <div class="input-group" id="grupo-dir-perfil">
                     <label for="perfil-direccion">Dirección / Base:</label>
-                    <input type="text" id="perfil-direccion" required>
+                    <input type="text" id="perfil-direccion">
                 </div>
                 <div class="input-group">
                     <label for="perfil-logo-file">🖼️ Cambiar Foto / Logo (Galería):</label>
