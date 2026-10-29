@@ -26,7 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
         "Pereira": { lat: 4.8133, lng: -75.6961 }
     };
 
-    // Bolsa global de fletes creados por las empresas reales
     let bolsaFletesGlobal = JSON.parse(localStorage.getItem('bolsa_fletes_logistica_v2026')) || [];
     let chatsFletesGlobal = JSON.parse(localStorage.getItem('chats_fletes_logistica_v2026')) || {};
 
@@ -78,15 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026') || null;
     let modoOnline = true;
     let productosDetectadosTemporal = [];
-    let logoBase64Registro = "https://cdn-icons-png.flaticon.com/512/2897/2897785.png";
     let logoBase64Perfil = "";
     let fleteChatActivoId = null;
 
     let mapaPrincipal = null;
-    let mapaRegistro = null;
-    let marcadorRegistro = null;
+    let mapaPerfil = null;
+    let marcadorPerfil = null;
 
-    // DOM Elements
     const pantallaLogin = document.getElementById('pantalla-login');
     const pantallaApp = document.getElementById('pantalla-app');
     const tabLogin = document.getElementById('tab-login');
@@ -104,11 +101,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const regDepartamento = document.getElementById('reg-departamento');
     const regCiudad = document.getElementById('reg-ciudad');
-    const regLat = document.getElementById('reg-lat');
-    const regLng = document.getElementById('reg-lng');
-    const lblCoordSeleccionada = document.getElementById('lbl-coord-seleccionada');
-    const regLogoFile = document.getElementById('reg-logo-file');
-    const previewRegLogo = document.getElementById('preview-reg-logo');
 
     const imgAvatarHeader = document.getElementById('img-avatar-header');
     const btnPerfilAvatar = document.getElementById('btn-perfil-avatar');
@@ -162,8 +154,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const perfilCiudad = document.getElementById('perfil-ciudad');
     const perfilDireccion = document.getElementById('perfil-direccion');
     const grupoDirPerfil = document.getElementById('grupo-dir-perfil');
+    const perfilVehiculo = document.getElementById('perfil-vehiculo');
+    const grupoVehiculoPerfil = document.getElementById('grupo-vehiculo-perfil');
+    const perfilPlaca = document.getElementById('perfil-placa');
+    const grupoPlacaPerfil = document.getElementById('grupo-placa-perfil');
     const perfilLogoFile = document.getElementById('perfil-logo-file');
     const previewPerfilLogo = document.getElementById('preview-perfil-logo');
+    const perfilLat = document.getElementById('perfil-lat');
+    const perfilLng = document.getElementById('perfil-lng');
+    const lblCoordPerfil = document.getElementById('lbl-coord-perfil');
 
     function guardarEnStorage() {
         localStorage.setItem('bd_logistica_ubate_v2026', JSON.stringify(baseDeDatosUsuarios));
@@ -201,20 +200,11 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsDataURL(file);
     }
 
-    regLogoFile.addEventListener('change', () => {
-        convertirImagenABase64(regLogoFile, base64 => {
-            if (base64) {
-                logoBase64Registro = base64;
-                previewRegLogo.innerHTML = `<img src="${base64}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #dc2626;">`;
-            }
-        });
-    });
-
     perfilLogoFile.addEventListener('change', () => {
         convertirImagenABase64(perfilLogoFile, base64 => {
             if (base64) {
                 logoBase64Perfil = base64;
-                previewPerfilLogo.innerHTML = `<img src="${base64}" style="width:45px; height:45px; border-radius:50%; object-fit:cover; border:2px solid #dc2626;">`;
+                previewPerfilLogo.innerHTML = `<img src="${base64}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #dc2626;">`;
             }
         });
     });
@@ -237,10 +227,16 @@ document.addEventListener('DOMContentLoaded', () => {
     configurarSelectores(regDepartamento, regCiudad);
     configurarSelectores(perfilDepartamento, perfilCiudad);
 
-    regCiudad.addEventListener('change', () => {
-        const muni = regCiudad.value;
-        const coords = coordenadasBaseSedes[muni] || { lat: 4.6097, lng: -74.0817 };
-        if (mapaRegistro) mapaRegistro.setView([coords.lat, coords.lng], 13);
+    perfilCiudad.addEventListener('change', () => {
+        const muni = perfilCiudad.value;
+        const coords = coordenadasBaseSedes[muni];
+        if (coords && mapaPerfil) {
+            perfilLat.value = coords.lat;
+            perfilLng.value = coords.lng;
+            lblCoordPerfil.innerHTML = `✅ Lat ${coords.lat.toFixed(4)}, Lng ${coords.lng.toFixed(4)}`;
+            mapaPerfil.setView([coords.lat, coords.lng], 13);
+            if (marcadorPerfil) marcadorPerfil.setLatLng([coords.lat, coords.lng]);
+        }
     });
 
     tabLogin.addEventListener('click', () => {
@@ -257,28 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formRegister.classList.remove('hidden');
         formLogin.classList.add('hidden');
         mensajeAuth.classList.add('hidden');
-        setTimeout(() => inicializarMapaRegistro(), 300);
     });
-
-    function inicializarMapaRegistro() {
-        if (!mapaRegistro) {
-            mapaRegistro = L.map('mapa-registro').setView([5.3114, -73.8169], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapaRegistro);
-
-            mapaRegistro.on('click', (e) => {
-                const lat = e.latlng.lat;
-                const lng = e.latlng.lng;
-                regLat.value = lat;
-                regLng.value = lng;
-                lblCoordSeleccionada.innerHTML = `✅ Lat ${lat.toFixed(4)}, Lng ${lng.toFixed(4)}`;
-
-                if (marcadorRegistro) marcadorRegistro.setLatLng([lat, lng]);
-                else marcadorRegistro = L.marker([lat, lng], { draggable: true }).addTo(mapaRegistro);
-            });
-        } else {
-            mapaRegistro.invalidateSize();
-        }
-    }
 
     formRegister.addEventListener('submit', (e) => {
         e.preventDefault();
@@ -288,18 +263,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const depto = regDepartamento.value;
         const ciudad = regCiudad.value;
         const pass = document.getElementById('reg-password').value.trim();
-        const lat = parseFloat(regLat.value);
-        const lng = parseFloat(regLng.value);
-
-        if (isNaN(lat) || isNaN(lng)) {
-            alert("⚠️ Haz clic en el mapa para ubicar tu posición exacta.");
-            return;
-        }
 
         if (baseDeDatosUsuarios[usrKey]) {
             mostrarMensaje("⚠️ El usuario ya existe. Elige otro nombre o inicia sesión.", "error");
             return;
         }
+
+        const coordsBase = coordenadasBaseSedes[ciudad] || { lat: 4.6097, lng: -74.0817 };
 
         let nuevoUsuario = {
             rol: rol,
@@ -307,14 +277,15 @@ document.addEventListener('DOMContentLoaded', () => {
             password: pass,
             departamento: depto,
             ciudad: ciudad,
-            logo: logoBase64Registro,
-            lat: lat,
-            lng: lng
+            logo: "https://cdn-icons-png.flaticon.com/512/2897/2897785.png",
+            lat: coordsBase.lat,
+            lng: coordsBase.lng
         };
 
         if (rol === 'conductor') {
             nuevoUsuario.vehiculo = regVehiculo.value.trim() || "Turbo Particular";
             nuevoUsuario.placa = regPlaca.value.trim().toUpperCase() || "SXX-000";
+            nuevoUsuario.logo = "https://cdn-icons-png.flaticon.com/512/2972/2972195.png";
         } else {
             nuevoUsuario.direccion = regDireccion.value.trim() || "Bodega Central";
             nuevoUsuario.inventario = [];
@@ -393,6 +364,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <strong style="color:#dc2626;">🏢 Empresa: ${f.empresa}</strong>
                             <p style="font-size:0.8rem; color:#64748b; margin:4px 0;">Ruta: <strong>${f.origen} ➔ ${f.destino}</strong></p>
                             <p style="font-size:0.8rem; color:#334155; margin:4px 0;">Detalle: ${f.carga}</p>
+                            <p style="font-size:0.85rem; color:#15803d; font-weight:bold; margin:4px 0;">💰 Tarifa Ofrecida: $${parseInt(f.tarifa).toLocaleString()} COP</p>
                             <div style="display:flex; gap:8px; margin-top:8px;">
                                 ${!esMio ? `<button onclick="aceptarFlete('${f.id}')" style="background:#16a34a; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.78rem;"><i class="fa-solid fa-check"></i> Aceptar Viaje</button>` : `<span style="color:#16a34a; font-weight:bold; font-size:0.8rem;">✅ Viaje Asignado a Ti</span>`}
                                 <button onclick="abrirChatFlete('${f.id}', '${f.empresa}')" style="background:#2563eb; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.78rem;"><i class="fa-solid fa-comments"></i> Chat con Empresa</button>
@@ -412,9 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div class="card-section">
                     <h4><i class="fa-solid fa-route"></i> Bolsa de Carga Nacional</h4>
-                    <div id="lista-fletes-conductor" style="margin-top:8px;">
-                        ${fletesHtml}
-                    </div>
+                    <div id="lista-fletes-conductor" style="margin-top:8px;">${fletesHtml}</div>
                 </div>
             `;
         } else {
@@ -422,9 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="card-section ocr-highlight">
                     <h4><i class="fa-solid fa-file-invoice-dollar"></i> Ingreso Masivo por Foto de Factura (OCR)</h4>
                     <p style="font-size:0.8rem; color:#1e40af; margin-bottom:8px;">Tómale foto a tu factura para auditar y cargar productos al stock.</p>
-                    <div class="input-group">
-                        <input type="file" id="input-foto-factura" accept="image/*" capture="environment">
-                    </div>
+                    <div class="input-group"><input type="file" id="input-foto-factura" accept="image/*" capture="environment"></div>
                     <button id="btn-procesar-ocr" class="btn-primary" style="background-color: #2563eb;"><i class="fa-solid fa-wand-magic-sparkles"></i> Escanear Factura y Revisar</button>
                     <div id="estado-ocr" class="ocr-status-text"></div>
                 </div>
@@ -466,6 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         const origen = document.getElementById('flete-origen').value;
         const destino = document.getElementById('flete-destino').value;
+        const tarifa = document.getElementById('flete-tarifa').value;
         const detalles = document.getElementById('flete-detalles').value.trim();
 
         const nuevoFlete = {
@@ -474,6 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
             empresa: usrData.nombreOriginal,
             origen: origen,
             destino: destino,
+            tarifa: tarifa,
             carga: detalles,
             estado: "Disponible",
             conductorKey: null
@@ -483,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
         guardarEnStorage();
         formPedirFleteLibre.reset();
         renderizarMisFletesEmpresa();
-        alert("✅ ¡Solicitud de flete publicada con éxito en el mapa! Los transportadores ya pueden verla y negociar contigo.");
+        alert("✅ ¡Solicitud de flete publicada con éxito! Los transportadores ya pueden aceptarla y negociar la tarifa.");
     });
 
     function renderizarMisFletesEmpresa() {
@@ -498,7 +468,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `
                 <div style="background:#fff; padding:10px; border-radius:8px; border:1px solid #e2e8f0; margin-bottom:8px;">
                     <strong style="color:#1e293b;">Ruta: ${f.origen} ➔ ${f.destino}</strong>
-                    <p style="font-size:0.78rem; color:#64748b; margin:2px 0;">Detalle: ${f.carga}</p>
+                    <p style="font-size:0.78rem; color:#64748b; margin:2px 0;">Detalle: ${f.carga} | Tarifa: $${parseInt(f.tarifa).toLocaleString()} COP</p>
                     <p style="font-size:0.78rem; color:${f.estado==='Disponible'?'#d97706':'#16a34a'}; font-weight:bold;">Estado: ${f.estado}</p>
                     <button onclick="abrirChatFlete('${f.id}', 'Transportador')" style="background:#2563eb; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer; margin-top:4px;"><i class="fa-solid fa-comments"></i> Abrir Chat / Negociar</button>
                 </div>
@@ -513,7 +483,7 @@ document.addEventListener('DOMContentLoaded', () => {
             flete.estado = "Asignado";
             flete.conductorKey = usuarioSesionActiva;
             guardarEnStorage();
-            alert(`✅ ¡Has aceptado el viaje de ${flete.empresa}! Ya puedes chatear con el distribuidor para coordinar el valor y la recogida.`);
+            alert(`✅ ¡Has aceptado el viaje de ${flete.empresa}! Ya puedes abrir el chat para comunicarte y confirmar detalles.`);
             configurarContenidoSheet();
         }
     };
@@ -530,7 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderizarMensajesChat() {
         if (!chatsFletesGlobal[fleteChatActivoId]) {
             chatsFletesGlobal[fleteChatActivoId] = [
-                { emisor: "Sistema", texto: "Canal seguro de negociación abierto. Acuerden aquí la tarifa del flete, peso y lugar exacto de recogida." }
+                { emisor: "Sistema", texto: "Canal de negociación abierto. Aquí pueden conversar directamente sobre la tarifa, el horario de recogida y condiciones de la carga." }
             ];
         }
 
@@ -715,15 +685,67 @@ document.addEventListener('DOMContentLoaded', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         perfilDepartamento.value = usrData.departamento || "Cundinamarca";
         perfilDepartamento.dispatchEvent(new Event('change'));
-        setTimeout(() => perfilCiudad.value = usrData.ciudad || "", 50);
+        setTimeout(() => {
+            perfilCiudad.value = usrData.ciudad || "";
+        }, 50);
 
         if (usrData.rol === 'conductor') {
             grupoDirPerfil.style.display = 'none';
+            grupoVehiculoPerfil.style.display = 'block';
+            grupoPlacaPerfil.style.display = 'block';
+            perfilVehiculo.value = usrData.vehiculo || "";
+            perfilPlaca.value = usrData.placa || "";
         } else {
             grupoDirPerfil.style.display = 'block';
+            grupoVehiculoPerfil.style.display = 'none';
+            grupoPlacaPerfil.style.display = 'none';
             perfilDireccion.value = usrData.direccion || "";
         }
+
+        logoBase64Perfil = usrData.logo || "";
+        if (usrData.logo) {
+            previewPerfilLogo.innerHTML = `<img src="${usrData.logo}" style="width:50px; height:50px; border-radius:50%; object-fit:cover; border:2px solid #dc2626;">`;
+        } else {
+            previewPerfilLogo.innerHTML = "";
+        }
+
+        perfilLat.value = usrData.lat;
+        perfilLng.value = usrData.lng;
+        lblCoordPerfil.innerHTML = `✅ Lat ${usrData.lat.toFixed(4)}, Lng ${usrData.lng.toFixed(4)}`;
+
         modalPerfil.classList.remove('hidden');
+        setTimeout(() => inicializarMapaPerfil(usrData.lat, usrData.lng), 300);
+    }
+
+    function inicializarMapaPerfil(lat, lng) {
+        if (!mapaPerfil) {
+            mapaPerfil = L.map('mapa-perfil-interactivo').setView([lat, lng], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapaPerfil);
+
+            mapaPerfil.on('click', (e) => {
+                const newLat = e.latlng.lat;
+                const newLng = e.latlng.lng;
+                perfilLat.value = newLat;
+                perfilLng.value = newLng;
+                lblCoordPerfil.innerHTML = `✅ Lat ${newLat.toFixed(4)}, Lng ${newLng.toFixed(4)}`;
+
+                if (marcadorPerfil) marcadorPerfil.setLatLng([newLat, newLng]);
+                else marcadorPerfil = L.marker([newLat, newLng], { draggable: true }).addTo(mapaPerfil);
+            });
+        } else {
+            mapaPerfil.invalidateSize();
+            mapaPerfil.setView([lat, lng], 14);
+        }
+
+        if (marcadorPerfil) mapaPerfil.removeLayer(marcadorPerfil);
+        marcadorPerfil = L.marker([lat, lng], { draggable: true }).addTo(mapaPerfil);
+        
+        marcadorPerfil.on('dragend', (e) => {
+            const pos = e.target.getLatLng();
+            perfilLat.value = pos.lat;
+            perfilLng.value = pos.lng;
+            lblCoordPerfil.innerHTML = `✅ Lat ${pos.lat.toFixed(4)}, Lng ${pos.lng.toFixed(4)}`;
+        });
     }
 
     btnCerrarPerfil.addEventListener('click', () => modalPerfil.classList.add('hidden'));
@@ -733,19 +755,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         usrData.departamento = perfilDepartamento.value;
         usrData.ciudad = perfilCiudad.value;
-        if (usrData.rol === 'empresa') usrData.direccion = perfilDireccion.value.trim();
+        
+        if (usrData.rol === 'empresa') {
+            usrData.direccion = perfilDireccion.value.trim();
+        } else {
+            usrData.vehiculo = perfilVehiculo.value.trim();
+            usrData.placa = perfilPlaca.value.trim().toUpperCase();
+        }
+
         if (logoBase64Perfil) {
             usrData.logo = logoBase64Perfil;
             imgAvatarHeader.src = logoBase64Perfil;
         }
 
-        const coords = coordenadasBaseSedes[usrData.ciudad];
-        if (coords) { usrData.lat = coords.lat; usrData.lng = coords.lng; }
+        usrData.lat = parseFloat(perfilLat.value) || usrData.lat;
+        usrData.lng = parseFloat(perfilLng.value) || usrData.lng;
 
         guardarEnStorage();
         modalPerfil.classList.add('hidden');
         inicializarMapaPrincipal();
-        alert("✅ Perfil actualizado con éxito.");
+        alert("✅ ¡Perfil, foto y ubicación actualizados con éxito en el mapa!");
     });
 
     function setupOcrListeners() {

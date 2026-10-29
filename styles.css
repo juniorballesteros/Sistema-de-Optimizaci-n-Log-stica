@@ -2,7 +2,7 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 body.gmaps-layout {
@@ -24,7 +24,6 @@ body.gmaps-layout {
     z-index: 1;
 }
 
-/* BARRA SUPERIOR FLOTANTE */
 .gmaps-search-bar {
     position: absolute;
     top: 12px;
@@ -78,7 +77,6 @@ body.gmaps-layout {
     object-fit: cover;
 }
 
-/* CHIPS DESLIZABLES */
 .quick-chips-scroll {
     display: flex;
     gap: 8px;
@@ -114,7 +112,6 @@ body.gmaps-layout {
     font-weight: 600;
 }
 
-/* BOTONES FLOTANTES (FAB) */
 .gmaps-fab-actions {
     position: absolute;
     right: 16px;
@@ -144,7 +141,6 @@ body.gmaps-layout {
     color: #dc2626;
 }
 
-/* BOTTOM NAVIGATION BAR */
 .gmaps-bottom-nav {
     position: absolute;
     bottom: 0;
@@ -168,14 +164,14 @@ body.gmaps-layout {
     align-items: center;
     gap: 3px;
     color: #5f6368;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 500;
     cursor: pointer;
     width: 20%;
 }
 
 .nav-item i {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
 }
 
 .nav-item.active {
@@ -183,7 +179,6 @@ body.gmaps-layout {
     font-weight: 700;
 }
 
-/* SLIDING SHEETS */
 .sliding-sheet {
     position: absolute;
     bottom: 64px;
@@ -258,7 +253,6 @@ body.gmaps-layout {
     color: #1d4ed8;
 }
 
-/* LOGIN OVERLAY */
 .login-screen-overlay {
     position: fixed;
     top: 0;
@@ -368,24 +362,21 @@ body.gmaps-layout {
 
 .mini-map-container {
     width: 100%;
-    height: 150px;
+    height: 180px;
     border-radius: 8px;
     border: 1px solid #cbd5e1;
+    margin-top: 4px;
 }
 
 .coord-label {
     font-size: 0.72rem;
     color: #dc2626;
-    margin-top: 2px;
+    margin-top: 4px;
+    font-weight: bold;
 }
 
 .logo-preview-box {
     margin-top: 4px;
-}
-
-/* TABLAS */
-.table-responsive {
-    overflow-x: auto;
 }
 
 .tabla-inventario {
@@ -406,7 +397,6 @@ body.gmaps-layout {
     color: #475569;
 }
 
-/* MODALES */
 .modal {
     position: fixed;
     top: 0;
@@ -427,6 +417,8 @@ body.gmaps-layout {
     padding: 20px;
     width: 100%;
     max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-header {
@@ -445,4 +437,12 @@ body.gmaps-layout {
 
 .hidden {
     display: none !important;
+}
+
+.error {
+    color: #dc2626;
+    font-size: 0.85rem;
+    text-align: center;
+    margin-top: 8px;
+    font-weight: 600;
 }
