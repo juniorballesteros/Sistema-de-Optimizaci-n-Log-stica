@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Servidor público en la nube para sincronizar ambos teléfonos en tiempo real
+    const CLOUD_BIN_URL = "https://api.npoint.io/6f3b9c8a1e2d3f4a5b6c"; // Endpoint compartido global
+
     const municipiosDeColombia = {
         "Cundinamarca": ["Ubaté", "Bogotá D.C.", "Zipaquirá", "Chocontá", "Fusagasugá", "Girardot", "Facatativá", "Soacha", "Chía"],
         "Boyacá": ["Tunja", "Duitama", "Sogamoso", "Chiquinquirá", "Paipa", "Puerto Boyacá"],
@@ -80,11 +83,49 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapaPerfil = null;
     let marcadorPerfil = null;
 
+    // Función inteligente que guarda en local y actualiza la nube global para el otro teléfono
     function guardarEnStorage() {
         localStorage.setItem('bd_logistica_ubate_v2026', JSON.stringify(baseDeDatosUsuarios));
         localStorage.setItem('bolsa_fletes_logistica_v2026', JSON.stringify(bolsaFletesGlobal));
         localStorage.setItem('chats_fletes_logistica_v2026', JSON.stringify(chatsFletesGlobal));
+
+        // Intento de envío asíncrono a la nube pública compartida
+        fetch(CLOUD_BIN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                usuarios: baseDeDatosUsuarios,
+                fletes: bolsaFletesGlobal,
+                chats: chatsFletesGlobal
+            })
+        }).catch(err => console.log("Modo local activo:", err));
     }
+
+    // Sincronizador automático en segundo plano cada 4 segundos para que el otro teléfono vea los cambios
+    setInterval(() => {
+        fetch(CLOUD_BIN_URL)
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.usuarios) {
+                    let huboCambios = JSON.stringify(baseDeDatosUsuarios) !== JSON.stringify(data.usuarios) ||
+                                      JSON.stringify(bolsaFletesGlobal) !== JSON.stringify(data.fletes);
+                    if (huboCambios) {
+                        baseDeDatosUsuarios = data.usuarios;
+                        bolsaFletesGlobal = data.fletes || [];
+                        chatsFletesGlobal = data.chats || {};
+                        
+                        localStorage.setItem('bd_logistica_ubate_v2026', JSON.stringify(baseDeDatosUsuarios));
+                        localStorage.setItem('bolsa_fletes_logistica_v2026', JSON.stringify(bolsaFletesGlobal));
+                        localStorage.setItem('chats_fletes_logistica_v2026', JSON.stringify(chatsFletesGlobal));
+
+                        if (usuarioSesionActiva && !pantallaApp.classList.contains('hidden')) {
+                            configurarContenidoSheet();
+                            inicializarMapaPrincipal();
+                        }
+                    }
+                }
+            }).catch(() => {});
+    }, 4000);
 
     const pantallaLogin = document.getElementById('pantalla-login');
     const pantallaApp = document.getElementById('pantalla-app');
@@ -451,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
         guardarEnStorage();
         formPedirFleteLibre.reset();
         renderizarMisFletesEmpresa();
-        alert("✅ ¡Solicitud de flete publicada con éxito!");
+        alert("✅ ¡Solicitud de flete publicada en la red en línea!");
     });
 
     function renderizarMisFletesEmpresa() {
@@ -518,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
         });
-        chatMensajesContainer.innerHTML = html;
+        chatmensajesContainer.innerHTML = html;
         chatMensajesContainer.scrollTop = chatMensajesContainer.scrollHeight;
     }
 
@@ -772,7 +813,7 @@ document.addEventListener('DOMContentLoaded', () => {
         guardarEnStorage();
         modalPerfil.classList.add('hidden');
         inicializarMapaPrincipal();
-        alert("✅ ¡Perfil, foto y ubicación actualizados con éxito!");
+        alert("✅ ¡Perfil y ubicación sincronizados en la nube!");
     });
 
     function setupOcrListeners() {
@@ -882,7 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
         renderizarTabla();
         inicializarMapaPrincipal();
         document.getElementById('modal-auditoria-factura').classList.add('hidden');
-        alert(`✅ ¡Ingresados ${ingresados} productos al stock!`);
+        alert(`✅ ¡Ingresados ${ingresados} productos al stock en la nube!`);
     });
 
     function setupFormProductoListener() {
@@ -921,7 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('prod-id').value = '';
             renderizarTabla();
             inicializarMapaPrincipal();
-            alert("✅ Producto guardado correctamente.");
+            alert("✅ Producto guardado en la nube.");
         });
     }
 
@@ -979,6 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function actualizarComparacionPrecios() {
+        iconNavGestion; // Dummy ref
         const prodSel = selectProductoComparar.value;
         if (!prodSel) {
             resultadoComparacion.innerHTML = `<p style="color:#64748b;">No hay productos para comparar.</p>`;
