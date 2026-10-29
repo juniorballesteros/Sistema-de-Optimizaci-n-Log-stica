@@ -1,6 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Servidor público en la nube para sincronizar ambos teléfonos en tiempo real
-    const CLOUD_BIN_URL = "https://api.npoint.io/6f3b9c8a1e2d3f4a5b6c"; // Endpoint compartido global
+    // Instancia pública activa de Firebase Realtime Database para comunicación en vivo entre dispositivos
+    const firebaseConfig = {
+        databaseURL: "https://red-logistica-colombia-default-rtdb.firebaseio.com/"
+    };
+
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
 
     const municipiosDeColombia = {
         "Cundinamarca": ["Ubaté", "Bogotá D.C.", "Zipaquirá", "Chocontá", "Fusagasugá", "Girardot", "Facatativá", "Soacha", "Chía"],
@@ -69,9 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    let bolsaFletesGlobal = JSON.parse(localStorage.getItem('bolsa_fletes_logistica_v2026')) || [];
-    let chatsFletesGlobal = JSON.parse(localStorage.getItem('chats_fletes_logistica_v2026')) || {};
-    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v2026')) || cuentasPredeterminadas;
+    let bolsaFletesGlobal = [];
+    let chatsFletesGlobal = {};
+    let baseDeDatosUsuarios = cuentasPredeterminadas;
 
     let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026') || null;
     let modoOnline = true;
@@ -83,49 +90,35 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapaPerfil = null;
     let marcadorPerfil = null;
 
-    // Función inteligente que guarda en local y actualiza la nube global para el otro teléfono
-    function guardarEnStorage() {
-        localStorage.setItem('bd_logistica_ubate_v2026', JSON.stringify(baseDeDatosUsuarios));
-        localStorage.setItem('bolsa_fletes_logistica_v2026', JSON.stringify(bolsaFletesGlobal));
-        localStorage.setItem('chats_fletes_logistica_v2026', JSON.stringify(chatsFletesGlobal));
+    // ESCUCHADOR EN TIEMPO REAL: Sincroniza inmediatamente ambos celulares
+    db.ref('red_logistica_global').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            bolsaFletesGlobal = data.fletes || [];
+            chatsFletesGlobal = data.chats || {};
+            baseDeDatosUsuarios = data.usuarios || cuentasPredeterminadas;
+        } else {
+            guardarEnNube();
+        }
 
-        // Intento de envío asíncrono a la nube pública compartida
-        fetch(CLOUD_BIN_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                usuarios: baseDeDatosUsuarios,
-                fletes: bolsaFletesGlobal,
-                chats: chatsFletesGlobal
-            })
-        }).catch(err => console.log("Modo local activo:", err));
-    }
-
-    // Sincronizador automático en segundo plano cada 4 segundos para que el otro teléfono vea los cambios
-    setInterval(() => {
-        fetch(CLOUD_BIN_URL)
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.usuarios) {
-                    let huboCambios = JSON.stringify(baseDeDatosUsuarios) !== JSON.stringify(data.usuarios) ||
-                                      JSON.stringify(bolsaFletesGlobal) !== JSON.stringify(data.fletes);
-                    if (huboCambios) {
-                        baseDeDatosUsuarios = data.usuarios;
-                        bolsaFletesGlobal = data.fletes || [];
-                        chatsFletesGlobal = data.chats || {};
-                        
-                        localStorage.setItem('bd_logistica_ubate_v2026', JSON.stringify(baseDeDatosUsuarios));
-                        localStorage.setItem('bolsa_fletes_logistica_v2026', JSON.stringify(bolsaFletesGlobal));
-                        localStorage.setItem('chats_fletes_logistica_v2026', JSON.stringify(chatsFletesGlobal));
-
-                        if (usuarioSesionActiva && !pantallaApp.classList.contains('hidden')) {
-                            configurarContenidoSheet();
-                            inicializarMapaPrincipal();
-                        }
-                    }
+        if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
+            if (!document.getElementById('pantalla-app').classList.contains('hidden')) {
+                configurarContenidoSheet();
+                inicializarMapaPrincipal();
+                if (!document.getElementById('modal-chat-uber').classList.contains('hidden') && fleteChatActivoId) {
+                    renderizarMensajesChat();
                 }
-            }).catch(() => {});
-    }, 4000);
+            }
+        }
+    });
+
+    function guardarEnNube() {
+        db.ref('red_logistica_global').set({
+            fletes: bolsaFletesGlobal,
+            chats: chatsFletesGlobal,
+            usuarios: baseDeDatosUsuarios
+        });
+    }
 
     const pantallaLogin = document.getElementById('pantalla-login');
     const pantallaApp = document.getElementById('pantalla-app');
@@ -329,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         baseDeDatosUsuarios[usrKey] = nuevoUsuario;
-        guardarEnStorage();
+        guardarEnNube();
         usuarioSesionActiva = usrKey;
         localStorage.setItem('sesion_activa_ubate_v2026', usrKey);
         iniciarApp();
@@ -489,10 +482,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         bolsaFletesGlobal.unshift(nuevoFlete);
-        guardarEnStorage();
+        guardarEnNube();
         formPedirFleteLibre.reset();
         renderizarMisFletesEmpresa();
-        alert("✅ ¡Solicitud de flete publicada en la red en línea!");
+        alert("✅ ¡Solicitud de flete publicada en tiempo real!");
     });
 
     function renderizarMisFletesEmpresa() {
@@ -521,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (flete) {
             flete.estado = "Asignado";
             flete.conductorKey = usuarioSesionActiva;
-            guardarEnStorage();
+            guardarEnNube();
             alert(`✅ ¡Has aceptado el viaje de ${flete.empresa}!`);
             configurarContenidoSheet();
         }
@@ -559,7 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
         });
-        chatmensajesContainer.innerHTML = html;
+        chatMensajesContainer.innerHTML = html;
         chatMensajesContainer.scrollTop = chatMensajesContainer.scrollHeight;
     }
 
@@ -569,7 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!chatsFletesGlobal[fleteChatActivoId]) chatsFletesGlobal[fleteChatActivoId] = [];
         chatsFletesGlobal[fleteChatActivoId].push({ emisor: usuarioSesionActiva, texto: texto });
-        guardarEnStorage();
+        guardarEnNube();
         inputMensajeChat.value = '';
         renderizarMensajesChat();
     });
@@ -810,7 +803,7 @@ document.addEventListener('DOMContentLoaded', () => {
         usrData.lat = parseFloat(perfilLat.value) || usrData.lat;
         usrData.lng = parseFloat(perfilLng.value) || usrData.lng;
 
-        guardarEnStorage();
+        guardarEnNube();
         modalPerfil.classList.add('hidden');
         inicializarMapaPrincipal();
         alert("✅ ¡Perfil y ubicación sincronizados en la nube!");
@@ -919,7 +912,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        guardarEnStorage();
+        guardarEnNube();
         renderizarTabla();
         inicializarMapaPrincipal();
         document.getElementById('modal-auditoria-factura').classList.add('hidden');
@@ -957,7 +950,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            guardarEnStorage();
+            guardarEnNube();
             formProducto.reset();
             document.getElementById('prod-id').value = '';
             renderizarTabla();
@@ -1020,7 +1013,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function actualizarComparacionPrecios() {
-        iconNavGestion; // Dummy ref
         const prodSel = selectProductoComparar.value;
         if (!prodSel) {
             resultadoComparacion.innerHTML = `<p style="color:#64748b;">No hay productos para comparar.</p>`;
