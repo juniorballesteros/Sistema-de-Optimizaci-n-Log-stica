@@ -1,7 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Instancia pública activa de Firebase Realtime Database para comunicación en vivo entre dispositivos
+    // Tus credenciales oficiales de Firebase
     const firebaseConfig = {
-        databaseURL: "https://red-logistica-colombia-default-rtdb.firebaseio.com/"
+        apiKey: "AIzaSyAe38BU1-l-D_kW9SdytB_pjb1XwQCsYSA",
+        authDomain: "logistica-ubate.firebaseapp.com",
+        databaseURL: "https://logistica-ubate-default-rtdb.firebaseio.com",
+        projectId: "logistica-ubate",
+        storageBucket: "logistica-ubate.firebasestorage.app",
+        messagingSenderId: "544310522454",
+        appId: "1:544310522454:web:2b0438487d0172cee281f7",
+        measurementId: "G-1WG5XJ9RRG"
     };
 
     if (!firebase.apps.length) {
@@ -90,8 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapaPerfil = null;
     let marcadorPerfil = null;
 
-    // ESCUCHADOR EN TIEMPO REAL: Sincroniza inmediatamente ambos celulares
-    db.ref('red_logistica_global').on('value', (snapshot) => {
+    // Sincronización en Tiempo Real con Firebase
+    db.ref('logistica_ubate_v2026').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
             bolsaFletesGlobal = data.fletes || [];
@@ -113,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function guardarEnNube() {
-        db.ref('red_logistica_global').set({
+        db.ref('logistica_ubate_v2026').set({
             fletes: bolsaFletesGlobal,
             chats: chatsFletesGlobal,
             usuarios: baseDeDatosUsuarios
@@ -485,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
         guardarEnNube();
         formPedirFleteLibre.reset();
         renderizarMisFletesEmpresa();
-        alert("✅ ¡Solicitud de flete publicada en tiempo real!");
+        alert("✅ ¡Solicitud de flete publicada en tu nube en tiempo real!");
     });
 
     function renderizarMisFletesEmpresa() {
