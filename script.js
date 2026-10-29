@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Tus credenciales oficiales de Firebase
     const firebaseConfig = {
         apiKey: "AIzaSyAe38BU1-l-D_kW9SdytB_pjb1XwQCsYSA",
         authDomain: "logistica-ubate.firebaseapp.com",
@@ -54,32 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
             logo: "https://cdn-icons-png.flaticon.com/512/2897/2897785.png",
             lat: 5.3114,
             lng: -73.8169,
-            inventario: [
-                {
-                    id: "prod_1",
-                    codigo: "REF-101",
-                    nombre: "Queso Doble Crema 500g",
-                    stock: 50,
-                    minimo: 10,
-                    costoCompra: 8000,
-                    ivaPorcentaje: 19,
-                    margenPorcentaje: 30,
-                    precio: 11424,
-                    lotes: [{ idLote: "lote_101", cantidad: 50, fechaVencimiento: "2026-11-15" }]
-                }
-            ]
-        },
-        "conductor_carlos": {
-            rol: "conductor",
-            nombreOriginal: "Carlos Pérez",
-            password: "Admin123*",
-            departamento: "Cundinamarca",
-            ciudad: "Bogotá D.C.",
-            vehiculo: "Chevrolet NPR Furgón 4.5 Ton",
-            placa: "SXX-123",
-            logo: "https://cdn-icons-png.flaticon.com/512/2972/2972195.png",
-            lat: 4.6200,
-            lng: -74.0900
+            inventario: []
         }
     };
 
@@ -88,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let baseDeDatosUsuarios = cuentasPredeterminadas;
 
     let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026') || null;
-    let modoOnline = true;
     let productosDetectadosTemporal = [];
     let logoBase64Perfil = "";
     let fleteChatActivoId = null;
@@ -97,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapaPerfil = null;
     let marcadorPerfil = null;
 
-    // Sincronización en Tiempo Real con Firebase
+    // Sincronización en Tiempo Real
     db.ref('logistica_ubate_v2026').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -106,6 +79,11 @@ document.addEventListener('DOMContentLoaded', () => {
             baseDeDatosUsuarios = data.usuarios || cuentasPredeterminadas;
         } else {
             guardarEnNube();
+        }
+
+        // Recuperar sesión si se recargó la estructura
+        if (!usuarioSesionActiva) {
+            usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026');
         }
 
         if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
@@ -329,9 +307,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         baseDeDatosUsuarios[usrKey] = nuevoUsuario;
-        guardarEnNube();
         usuarioSesionActiva = usrKey;
         localStorage.setItem('sesion_activa_ubate_v2026', usrKey);
+        guardarEnNube();
         iniciarApp();
     });
 
@@ -406,7 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p style="font-size:0.85rem; color:#15803d; font-weight:bold; margin:4px 0;">💰 Tarifa Ofrecida: $${parseInt(f.tarifa).toLocaleString()} COP</p>
                             <div style="display:flex; gap:8px; margin-top:8px;">
                                 ${!esMio ? `<button onclick="aceptarFlete('${f.id}')" style="background:#16a34a; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.78rem;"><i class="fa-solid fa-check"></i> Aceptar Viaje</button>` : `<span style="color:#16a34a; font-weight:bold; font-size:0.8rem;">✅ Viaje Asignado a Ti</span>`}
-                                <button onclick="abrirChatFlete('${f.id}', '${f.empresa}')" style="background:#2563eb; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.78rem;"><i class="fa-solid fa-comments"></i> Chat con Empresa</button>
+                                <button onclick="abrirChatFlete('${f.id}', '${f.empresa}')" style="background:#2563eb; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; font-size:0.78rem; position:relative;"><i class="fa-solid fa-comments"></i> Chat con Empresa ${f.mensajesNoLeidosConductor ? '<span style="position:absolute; top:-5px; right:-5px; background:red; color:white; border-radius:50%; padding:2px 6px; font-size:0.6rem;">•</span>' : ''}</button>
                             </div>
                         </div>
                     `;
@@ -509,7 +487,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <strong style="color:#1e293b;">Ruta: ${f.origen} ➔ ${f.destino}</strong>
                     <p style="font-size:0.78rem; color:#64748b; margin:2px 0;">Detalle: ${f.carga} | Tarifa: $${parseInt(f.tarifa).toLocaleString()} COP</p>
                     <p style="font-size:0.78rem; color:${f.estado==='Disponible'?'#d97706':'#16a34a'}; font-weight:bold;">Estado: ${f.estado}</p>
-                    <button onclick="abrirChatFlete('${f.id}', 'Transportador')" style="background:#2563eb; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer; margin-top:4px;"><i class="fa-solid fa-comments"></i> Abrir Chat / Negociar</button>
+                    <button onclick="abrirChatFlete('${f.id}', 'Transportador')" style="background:#2563eb; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer; margin-top:4px; position:relative;"><i class="fa-solid fa-comments"></i> Abrir Chat / Negociar ${f.mensajesNoLeidosEmpresa ? '<span style="position:absolute; top:-5px; right:-5px; background:red; color:white; border-radius:50%; padding:2px 6px; font-size:0.6rem;">•</span>' : ''}</button>
                 </div>
             `;
         });
@@ -530,6 +508,16 @@ document.addEventListener('DOMContentLoaded', () => {
     window.abrirChatFlete = function(fleteId, nombreContraparte) {
         fleteChatActivoId = fleteId;
         chatTituloModal.innerHTML = `<i class="fa-solid fa-comments"></i> Chat Flete: ${nombreContraparte}`;
+        
+        // Limpiar notificaciones de no leído al abrir el chat
+        const flete = bolsaFletesGlobal.find(f => f.id === fleteId);
+        if (flete) {
+            const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+            if (usrData.rol === 'empresa') flete.mensajesNoLeidosEmpresa = false;
+            else flete.mensajesNoLeidosConductor = false;
+            guardarEnNube();
+        }
+
         renderizarMensajesChat();
         modalChatUber.classList.remove('hidden');
     };
@@ -569,6 +557,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!chatsFletesGlobal[fleteChatActivoId]) chatsFletesGlobal[fleteChatActivoId] = [];
         chatsFletesGlobal[fleteChatActivoId].push({ emisor: usuarioSesionActiva, texto: texto });
+
+        // Marcar notificación de mensaje nuevo para la contraparte
+        const flete = bolsaFletesGlobal.find(f => f.id === fleteChatActivoId);
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        if (flete) {
+            if (usrData.rol === 'empresa') {
+                flete.mensajesNoLeidosConductor = true;
+            } else {
+                flete.mensajesNoLeidosEmpresa = true;
+            }
+        }
+
         guardarEnNube();
         inputMensajeChat.value = '';
         renderizarMensajesChat();
@@ -958,7 +958,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             guardarEnNube();
-            formProducto.reset();
+            formProduct.reset ? formProduct.reset() : formProducto.reset();
             document.getElementById('prod-id').value = '';
             renderizarTabla();
             inicializarMapaPrincipal();
@@ -1052,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
         html += `</tbody></table>`;
 
         if (mejorPrecio !== Infinity) {
-            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Precio:</strong> ${mejorSedeName} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong>.</div>` + html;
+            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Próximo:</strong> ${mejorSedeName} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong>.</div>` + html;
         }
         resultadoComparacion.innerHTML = html;
     }
@@ -1061,7 +1061,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     inputBuscarMapa.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
-        if (!query) return;
+        if (!query.length) return;
 
         Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
             const usr = baseDeDatosUsuarios[usrKey];
