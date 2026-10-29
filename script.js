@@ -1,14 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Configuración Firebase Realtime Database pública gratuita de prueba
-    const firebaseConfig = {
-        databaseURL: "https://logistica-ubate-default-rtdb.firebaseio.com/"
-    };
-
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
-    const db = firebase.database();
-
     const municipiosDeColombia = {
         "Cundinamarca": ["Ubaté", "Bogotá D.C.", "Zipaquirá", "Chocontá", "Fusagasugá", "Girardot", "Facatativá", "Soacha", "Chía"],
         "Boyacá": ["Tunja", "Duitama", "Sogamoso", "Chiquinquirá", "Paipa", "Puerto Boyacá"],
@@ -76,9 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    let bolsaFletesGlobal = [];
-    let chatsFletesGlobal = {};
-    let baseDeDatosUsuarios = cuentasPredeterminadas;
+    let bolsaFletesGlobal = JSON.parse(localStorage.getItem('bolsa_fletes_logistica_v2026')) || [];
+    let chatsFletesGlobal = JSON.parse(localStorage.getItem('chats_fletes_logistica_v2026')) || {};
+    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v2026')) || cuentasPredeterminadas;
 
     let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026') || null;
     let modoOnline = true;
@@ -90,34 +80,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapaPerfil = null;
     let marcadorPerfil = null;
 
-    // Sincronización en Tiempo Real con Firebase
-    db.ref('sistema_logistica_v2026').on('value', (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-            bolsaFletesGlobal = data.fletes || [];
-            chatsFletesGlobal = data.chats || {};
-            baseDeDatosUsuarios = data.usuarios || cuentasPredeterminadas;
-        } else {
-            guardarEnNube();
-        }
-
-        if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
-            if (pantallaApp.classList.contains('hidden') === false) {
-                configurarContenidoSheet();
-                inicializarMapaPrincipal();
-                if (!modalChatUber.classList.contains('hidden') && fleteChatActivoId) {
-                    renderizarMensajesChat();
-                }
-            }
-        }
-    });
-
-    function guardarEnNube() {
-        db.ref('sistema_logistica_v2026').set({
-            fletes: bolsaFletesGlobal,
-            chats: chatsFletesGlobal,
-            usuarios: baseDeDatosUsuarios
-        });
+    function guardarEnStorage() {
+        localStorage.setItem('bd_logistica_ubate_v2026', JSON.stringify(baseDeDatosUsuarios));
+        localStorage.setItem('bolsa_fletes_logistica_v2026', JSON.stringify(bolsaFletesGlobal));
+        localStorage.setItem('chats_fletes_logistica_v2026', JSON.stringify(chatsFletesGlobal));
     }
 
     const pantallaLogin = document.getElementById('pantalla-login');
@@ -322,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         baseDeDatosUsuarios[usrKey] = nuevoUsuario;
-        guardarEnNube();
+        guardarEnStorage();
         usuarioSesionActiva = usrKey;
         localStorage.setItem('sesion_activa_ubate_v2026', usrKey);
         iniciarApp();
@@ -482,10 +448,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         bolsaFletesGlobal.unshift(nuevoFlete);
-        guardarEnNube();
+        guardarEnStorage();
         formPedirFleteLibre.reset();
         renderizarMisFletesEmpresa();
-        alert("✅ ¡Solicitud de flete publicada en la nube! Los transportadores ya pueden verla y aceptarla.");
+        alert("✅ ¡Solicitud de flete publicada con éxito!");
     });
 
     function renderizarMisFletesEmpresa() {
@@ -514,8 +480,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (flete) {
             flete.estado = "Asignado";
             flete.conductorKey = usuarioSesionActiva;
-            guardarEnNube();
-            alert(`✅ ¡Has aceptado el viaje de ${flete.empresa}! Ya puedes abrir el chat para comunicarte y confirmar detalles.`);
+            guardarEnStorage();
+            alert(`✅ ¡Has aceptado el viaje de ${flete.empresa}!`);
             configurarContenidoSheet();
         }
     };
@@ -532,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderizarMensajesChat() {
         if (!chatsFletesGlobal[fleteChatActivoId]) {
             chatsFletesGlobal[fleteChatActivoId] = [
-                { emisor: "Sistema", texto: "Canal de negociación abierto. Aquí pueden conversar directamente sobre la tarifa, el horario de recogida y condiciones de la carga." }
+                { emisor: "Sistema", texto: "Canal de negociación abierto." }
             ];
         }
 
@@ -562,7 +528,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!chatsFletesGlobal[fleteChatActivoId]) chatsFletesGlobal[fleteChatActivoId] = [];
         chatsFletesGlobal[fleteChatActivoId].push({ emisor: usuarioSesionActiva, texto: texto });
-        guardarEnNube();
+        guardarEnStorage();
         inputMensajeChat.value = '';
         renderizarMensajesChat();
     });
@@ -803,10 +769,10 @@ document.addEventListener('DOMContentLoaded', () => {
         usrData.lat = parseFloat(perfilLat.value) || usrData.lat;
         usrData.lng = parseFloat(perfilLng.value) || usrData.lng;
 
-        guardarEnNube();
+        guardarEnStorage();
         modalPerfil.classList.add('hidden');
         inicializarMapaPrincipal();
-        alert("✅ ¡Perfil y ubicación sincronizados en la nube con éxito!");
+        alert("✅ ¡Perfil, foto y ubicación actualizados con éxito!");
     });
 
     function setupOcrListeners() {
@@ -912,11 +878,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        guardarEnNube();
+        guardarEnStorage();
         renderizarTabla();
         inicializarMapaPrincipal();
         document.getElementById('modal-auditoria-factura').classList.add('hidden');
-        alert(`✅ ¡Ingresados ${ingresados} productos al stock en la nube!`);
+        alert(`✅ ¡Ingresados ${ingresados} productos al stock!`);
     });
 
     function setupFormProductoListener() {
@@ -950,12 +916,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            guardarEnNube();
+            guardarEnStorage();
             formProducto.reset();
             document.getElementById('prod-id').value = '';
             renderizarTabla();
             inicializarMapaPrincipal();
-            alert("✅ Producto guardado en la nube.");
+            alert("✅ Producto guardado correctamente.");
         });
     }
 
