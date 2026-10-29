@@ -12,18 +12,22 @@
     <!-- OCR Tesseract.js -->
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+
     <!-- Estilos CSS -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="gmaps-layout">
 
-    <!-- PANTALLA 1: INICIO DE SESIÓN / REGISTRO SIMPLIFICADO -->
+    <!-- PANTALLA 1: INICIO DE SESIÓN / REGISTRO -->
     <div id="pantalla-login" class="login-screen-overlay">
         <div class="login-modal-card">
             <header class="login-header">
                 <div class="brand-icon"><i class="fa-solid fa-boxes-packing"></i></div>
                 <h2>Red Logística Nacional</h2>
-                <p>Gestión de Suministros y Logística de Carga</p>
+                <p>Gestión de Suministros y Logística (Nube)</p>
             </header>
 
             <div class="tabs-auth">
@@ -44,7 +48,7 @@
                 <button type="submit" class="btn-primary">Ingresar al Sistema</button>
             </form>
 
-            <!-- FORMULARIO REGISTRAR USUARIO (LIMPIO SIN MAPA NI FOTO AFUERA) -->
+            <!-- FORMULARIO REGISTRAR USUARIO -->
             <form id="form-register" class="auth-form hidden">
                 <div class="input-group">
                     <label for="reg-rol">Seleccionar Tipo de Cuenta (Rol):</label>
@@ -83,7 +87,7 @@
                     </div>
                 </div>
 
-                <!-- CAMPOS DE CONDUCTOR (SOLO TEXTO) -->
+                <!-- CAMPOS DE CONDUCTOR -->
                 <div id="campos-conductor" class="hidden" style="background:#fef2f2; padding:10px; border-radius:8px; border:1px solid #fca5a5; margin-bottom:10px;">
                     <div class="input-group">
                         <label for="reg-vehiculo">Escribe tu Tipo de Turbo / Vehículo:</label>
@@ -288,7 +292,7 @@
         </div>
     </div>
 
-    <!-- MODAL PERFIL COMPLETO (FOTO, DIRECCIÓN Y MAPA INTERACTIVO INTERNO) -->
+    <!-- MODAL PERFIL -->
     <div id="modal-perfil" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">

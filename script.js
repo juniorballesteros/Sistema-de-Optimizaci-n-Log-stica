@@ -1,4 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Configuración Firebase Realtime Database pública gratuita de prueba
+    const firebaseConfig = {
+        databaseURL: "https://logistica-ubate-default-rtdb.firebaseio.com/"
+    };
+
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.database();
+
     const municipiosDeColombia = {
         "Cundinamarca": ["Ubaté", "Bogotá D.C.", "Zipaquirá", "Chocontá", "Fusagasugá", "Girardot", "Facatativá", "Soacha", "Chía"],
         "Boyacá": ["Tunja", "Duitama", "Sogamoso", "Chiquinquirá", "Paipa", "Puerto Boyacá"],
@@ -25,9 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
         "Montería": { lat: 8.7479, lng: -75.8814 },
         "Pereira": { lat: 4.8133, lng: -75.6961 }
     };
-
-    let bolsaFletesGlobal = JSON.parse(localStorage.getItem('bolsa_fletes_logistica_v2026')) || [];
-    let chatsFletesGlobal = JSON.parse(localStorage.getItem('chats_fletes_logistica_v2026')) || {};
 
     const cuentasPredeterminadas = {
         "distribuidora_ubate": {
@@ -69,10 +76,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    let baseDeDatosUsuarios = JSON.parse(localStorage.getItem('bd_logistica_ubate_v2026')) || cuentasPredeterminadas;
-    Object.keys(cuentasPredeterminadas).forEach(key => {
-        if (!baseDeDatosUsuarios[key]) baseDeDatosUsuarios[key] = cuentasPredeterminadas[key];
-    });
+    let bolsaFletesGlobal = [];
+    let chatsFletesGlobal = {};
+    let baseDeDatosUsuarios = cuentasPredeterminadas;
 
     let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026') || null;
     let modoOnline = true;
@@ -83,6 +89,36 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapaPrincipal = null;
     let mapaPerfil = null;
     let marcadorPerfil = null;
+
+    // Sincronización en Tiempo Real con Firebase
+    db.ref('sistema_logistica_v2026').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            bolsaFletesGlobal = data.fletes || [];
+            chatsFletesGlobal = data.chats || {};
+            baseDeDatosUsuarios = data.usuarios || cuentasPredeterminadas;
+        } else {
+            guardarEnNube();
+        }
+
+        if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
+            if (pantallaApp.classList.contains('hidden') === false) {
+                configurarContenidoSheet();
+                inicializarMapaPrincipal();
+                if (!modalChatUber.classList.contains('hidden') && fleteChatActivoId) {
+                    renderizarMensajesChat();
+                }
+            }
+        }
+    });
+
+    function guardarEnNube() {
+        db.ref('sistema_logistica_v2026').set({
+            fletes: bolsaFletesGlobal,
+            chats: chatsFletesGlobal,
+            usuarios: baseDeDatosUsuarios
+        });
+    }
 
     const pantallaLogin = document.getElementById('pantalla-login');
     const pantallaApp = document.getElementById('pantalla-app');
@@ -163,12 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const perfilLat = document.getElementById('perfil-lat');
     const perfilLng = document.getElementById('perfil-lng');
     const lblCoordPerfil = document.getElementById('lbl-coord-perfil');
-
-    function guardarEnStorage() {
-        localStorage.setItem('bd_logistica_ubate_v2026', JSON.stringify(baseDeDatosUsuarios));
-        localStorage.setItem('bolsa_fletes_logistica_v2026', JSON.stringify(bolsaFletesGlobal));
-        localStorage.setItem('chats_fletes_logistica_v2026', JSON.stringify(chatsFletesGlobal));
-    }
 
     function mostrarMensaje(msg, tipo) {
         mensajeAuth.textContent = msg;
@@ -292,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         baseDeDatosUsuarios[usrKey] = nuevoUsuario;
-        guardarEnStorage();
+        guardarEnNube();
         usuarioSesionActiva = usrKey;
         localStorage.setItem('sesion_activa_ubate_v2026', usrKey);
         iniciarApp();
@@ -324,9 +354,9 @@ document.addEventListener('DOMContentLoaded', () => {
         pantallaApp.classList.remove('hidden');
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
 
-        if (usrData.logo) imgAvatarHeader.src = usrData.logo;
+        if (usrData && usrData.logo) imgAvatarHeader.src = usrData.logo;
 
-        if (usrData.rol === 'conductor') {
+        if (usrData && usrData.rol === 'conductor') {
             sheetTituloPrincipal.innerHTML = `<i class="fa-solid fa-truck-fast"></i> Bolsa de Fletes y Carga Disponible`;
             iconNavGestion.className = "fa-solid fa-truck-fast";
             txtNavGestion.textContent = "Bolsa Carga";
@@ -352,6 +382,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function configurarContenidoSheet() {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        if (!usrData) return;
+
         if (usrData.rol === 'conductor') {
             let fletesHtml = "";
             const fletesDisponibles = bolsaFletesGlobal.filter(f => f.estado === "Disponible" || f.conductorKey === usuarioSesionActiva);
@@ -450,10 +482,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         bolsaFletesGlobal.unshift(nuevoFlete);
-        guardarEnStorage();
+        guardarEnNube();
         formPedirFleteLibre.reset();
         renderizarMisFletesEmpresa();
-        alert("✅ ¡Solicitud de flete publicada con éxito! Los transportadores ya pueden aceptarla y negociar la tarifa.");
+        alert("✅ ¡Solicitud de flete publicada en la nube! Los transportadores ya pueden verla y aceptarla.");
     });
 
     function renderizarMisFletesEmpresa() {
@@ -482,7 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (flete) {
             flete.estado = "Asignado";
             flete.conductorKey = usuarioSesionActiva;
-            guardarEnStorage();
+            guardarEnNube();
             alert(`✅ ¡Has aceptado el viaje de ${flete.empresa}! Ya puedes abrir el chat para comunicarte y confirmar detalles.`);
             configurarContenidoSheet();
         }
@@ -530,7 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!chatsFletesGlobal[fleteChatActivoId]) chatsFletesGlobal[fleteChatActivoId] = [];
         chatsFletesGlobal[fleteChatActivoId].push({ emisor: usuarioSesionActiva, texto: texto });
-        guardarEnStorage();
+        guardarEnNube();
         inputMensajeChat.value = '';
         renderizarMensajesChat();
     });
@@ -771,10 +803,10 @@ document.addEventListener('DOMContentLoaded', () => {
         usrData.lat = parseFloat(perfilLat.value) || usrData.lat;
         usrData.lng = parseFloat(perfilLng.value) || usrData.lng;
 
-        guardarEnStorage();
+        guardarEnNube();
         modalPerfil.classList.add('hidden');
         inicializarMapaPrincipal();
-        alert("✅ ¡Perfil, foto y ubicación actualizados con éxito en el mapa!");
+        alert("✅ ¡Perfil y ubicación sincronizados en la nube con éxito!");
     });
 
     function setupOcrListeners() {
@@ -880,11 +912,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        guardarEnStorage();
+        guardarEnNube();
         renderizarTabla();
         inicializarMapaPrincipal();
         document.getElementById('modal-auditoria-factura').classList.add('hidden');
-        alert(`✅ ¡Ingresados ${ingresados} productos al stock!`);
+        alert(`✅ ¡Ingresados ${ingresados} productos al stock en la nube!`);
     });
 
     function setupFormProductoListener() {
@@ -918,12 +950,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            guardarEnStorage();
+            guardarEnNube();
             formProducto.reset();
             document.getElementById('prod-id').value = '';
             renderizarTabla();
             inicializarMapaPrincipal();
-            alert("✅ Producto guardado correctamente.");
+            alert("✅ Producto guardado en la nube.");
         });
     }
 
