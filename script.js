@@ -440,7 +440,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <form id="form-producto" class="form-grid-compact">
                         <input type="hidden" id="prod-id">
                         <div class="input-group"><label>Referencia / Código:</label><input type="text" id="prod-codigo" placeholder="Ej. REF-101" required></div>
-                        <div class="input-group"><label>Descripción Producto:</label><input type="text" id="prod-nombre" placeholder="Ej. Queso Doble Crema" required></div>
+                        <div class="input-group"><label>Descripción Producto:</label><input type="text" id="prod-nombre" placeholder="Ej. Hamburguesa Carne" required></div>
                         <div class="input-group"><label>Stock (Unidades):</label><input type="number" id="prod-stock" min="0" placeholder="20" required></div>
                         <div class="input-group"><label>Fecha Vencimiento:</label><input type="date" id="prod-vencimiento" required></div>
                         <div class="input-group"><label>Stock Mínimo:</label><input type="number" id="prod-minimo" min="0" value="5" required></div>
@@ -453,10 +453,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     </form>
                 </div>
                 <div class="card-section">
-                    <h4><i class="fa-solid fa-list-check"></i> Catálogo de Suministros (Control de Ventas y Stock)</h4>
+                    <h4><i class="fa-solid fa-list-check"></i> Catálogo y Registro de Ventas</h4>
                     <div class="table-responsive">
                         <table class="tabla-inventario">
-                            <thead><tr><th>Producto</th><th>Stock / Mín</th><th>Público</th><th>Ventas (+/-)</th><th>Acción</th></tr></thead>
+                            <thead><tr><th>Producto</th><th>Stock</th><th>Precio</th><th>Vender 🛒</th><th>Editar ✏️</th></tr></thead>
                             <tbody id="tabla-body"></tbody>
                         </table>
                     </div>
@@ -1024,31 +1024,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${prod.stock} un.</td>
                 <td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()}</td>
                 <td>
-                    <button type="button" onclick="cambiarStock('${prod.id}', -1)" style="background:#dc2626; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer;">-</button>
-                    <button type="button" onclick="cambiarStock('${prod.id}', 1)" style="background:#16a34a; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; margin-left:4px;">+</button>
+                    <button type="button" onclick="registrarVenta('${prod.id}')" style="background:#2563eb; color:#fff; border:none; padding:5px 10px; border-radius:4px; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-cart-shopping"></i> Vender</button>
                 </td>
                 <td>
-                    <button type="button" onclick="editarProducto('${prod.id}')" style="background:#eab308; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;"><i class="fa-solid fa-pen"></i></button>
+                    <button type="button" onclick="editarProducto('${prod.id}')" style="background:#eab308; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer;"><i class="fa-solid fa-pen"></i></button>
                 </td>
             `;
             tablaBody.appendChild(tr);
         });
     }
 
-    window.cambiarStock = function(id, cantidadCambio) {
+    window.registrarVenta = function(id) {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         if (!usrData || !usrData.inventario) return;
         const prod = usrData.inventario.find(p => p.id === id);
         if (!prod) return;
 
-        prod.stock += cantidadCambio;
-        if (prod.stock < 0) prod.stock = 0;
+        const cantidadVendidaStr = prompt(`¿Cuántas unidades de "${prod.nombre}" vendiste?`, "1");
+        if (!cantidadVendidaStr) return;
+        const cantidadVendida = parseInt(cantidadVendidaStr);
+
+        if (isNaN(cantidadVendida) || cantidadVendida <= 0) {
+            alert("⚠️ Ingresa una cantidad válida.");
+            return;
+        }
+
+        if (cantidadVendida > prod.stock) {
+            alert(`⚠️ Stock insuficiente. Solo tienes ${prod.stock} unidades disponibles.`);
+            return;
+        }
+
+        prod.stock -= cantidadVendida;
+        const totalVenta = cantidadVendida * prod.precio;
+        const costoTotal = cantidadVendida * prod.costoCompra;
+        const gananciaEstimada = totalVenta - costoTotal;
 
         flagGuardandoInventario = true;
         guardarEnNube(() => {
             setTimeout(() => { flagGuardandoInventario = false; }, 500);
         });
+
         renderizarTabla();
+        alert(`✅ ¡Venta registrada con éxito!\n\n• Unidades vendidas: ${cantidadVendida}\n• Total Venta: $${totalVenta.toLocaleString()} COP\n• Ganancia estimada: $${gananciaEstimada.toLocaleString()} COP\n• Stock restante: ${prod.stock}`);
     };
 
     window.editarProducto = function(id) {
@@ -1064,6 +1081,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('prod-costo').value = prod.costoCompra;
         document.getElementById('prod-iva').value = prod.ivaPorcentaje;
         document.getElementById('prod-margen').value = prod.margenPorcentaje;
+        alert(`✏️ Producto "${prod.nombre}" cargado en el formulario superior para modificar sus datos si lo requieres.`);
     };
 
     function poblarSelectorComparador() {
