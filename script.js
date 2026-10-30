@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let chatsFletesGlobal = {};
     let baseDeDatosUsuarios = cuentasPredeterminadas;
 
+    // Blindaje estricto de sesión en memoria local
     let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026') || null;
     let productosDetectadosTemporal = [];
     let logoBase64Perfil = "";
@@ -81,15 +82,21 @@ document.addEventListener('DOMContentLoaded', () => {
             guardarEnNube();
         }
 
-        // Recuperar sesión si se recargó la estructura
+        // Asegurar respaldo de sesión si localStorage sigue vivo
         if (!usuarioSesionActiva) {
             usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026');
         }
 
+        // Si hay sesión activa y el usuario existe en la BD, mantenemos la app abierta sin botar al login
         if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
-            if (!document.getElementById('pantalla-app').classList.contains('hidden')) {
-                configurarContenidoSheet();
-                inicializarMapaPrincipal();
+            const pantallaLogin = document.getElementById('pantalla-login');
+            const pantallaApp = document.getElementById('pantalla-app');
+            
+            if (pantallaLogin && !pantallaLogin.classList.contains('hidden')) {
+                pantallaLogin.classList.add('hidden');
+                pantallaApp.classList.remove('hidden');
+                iniciarAppConfig();
+            } else if (pantallaApp && !pantallaApp.classList.contains('hidden')) {
                 if (!document.getElementById('modal-chat-uber').classList.contains('hidden') && fleteChatActivoId) {
                     renderizarMensajesChat();
                 }
@@ -337,11 +344,16 @@ document.addEventListener('DOMContentLoaded', () => {
     function iniciarApp() {
         pantallaLogin.classList.add('hidden');
         pantallaApp.classList.remove('hidden');
+        iniciarAppConfig();
+    }
+
+    function iniciarAppConfig() {
+        if (!usuarioSesionActiva || !baseDeDatosUsuarios[usuarioSesionActiva]) return;
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
 
-        if (usrData && usrData.logo) imgAvatarHeader.src = usrData.logo;
+        if (usrData.logo) imgAvatarHeader.src = usrData.logo;
 
-        if (usrData && usrData.rol === 'conductor') {
+        if (usrData.rol === 'conductor') {
             sheetTituloPrincipal.innerHTML = `<i class="fa-solid fa-truck-fast"></i> Bolsa de Fletes y Carga Disponible`;
             iconNavGestion.className = "fa-solid fa-truck-fast";
             txtNavGestion.textContent = "Bolsa Carga";
@@ -509,7 +521,6 @@ document.addEventListener('DOMContentLoaded', () => {
         fleteChatActivoId = fleteId;
         chatTituloModal.innerHTML = `<i class="fa-solid fa-comments"></i> Chat Flete: ${nombreContraparte}`;
         
-        // Limpiar notificaciones de no leído al abrir el chat
         const flete = bolsaFletesGlobal.find(f => f.id === fleteId);
         if (flete) {
             const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
@@ -558,7 +569,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!chatsFletesGlobal[fleteChatActivoId]) chatsFletesGlobal[fleteChatActivoId] = [];
         chatsFletesGlobal[fleteChatActivoId].push({ emisor: usuarioSesionActiva, texto: texto });
 
-        // Marcar notificación de mensaje nuevo para la contraparte
         const flete = bolsaFletesGlobal.find(f => f.id === fleteChatActivoId);
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         if (flete) {
@@ -958,7 +968,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             guardarEnNube();
-            formProduct.reset ? formProduct.reset() : formProducto.reset();
+            formProducto.reset();
             document.getElementById('prod-id').value = '';
             renderizarTabla();
             inicializarMapaPrincipal();
@@ -1052,7 +1062,7 @@ document.addEventListener('DOMContentLoaded', () => {
         html += `</tbody></table>`;
 
         if (mejorPrecio !== Infinity) {
-            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Próximo:</strong> ${mejorSedeName} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong>.</div>` + html;
+            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Precio:</strong> ${mejorSedeName} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong>.</div>` + html;
         }
         resultadoComparacion.innerHTML = html;
     }
