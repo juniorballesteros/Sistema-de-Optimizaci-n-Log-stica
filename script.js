@@ -69,9 +69,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapaPrincipal = null;
     let mapaPerfil = null;
     let marcadorPerfil = null;
-    let flagGuardandoInventario = false; // Bandera para evitar bucles de recarga
+    let flagGuardandoInventario = false;
 
-    // Sincronización en Tiempo Real optimizada
     db.ref('logistica_ubate_v2026').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -95,7 +94,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 pantallaApp.classList.remove('hidden');
                 iniciarAppConfig();
             } else if (pantallaApp && !pantallaApp.classList.contains('hidden')) {
-                // Si estamos guardando inventario, evitamos redibujar todo bruscamente para que no saque al usuario
                 if (!flagGuardandoInventario) {
                     if (!document.getElementById('sheet-productos').classList.contains('hidden')) {
                         renderizarTabla();
@@ -381,7 +379,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         configurarContenidoSheet();
         
-        // Forzar renderizado y ajuste del mapa para que nunca cargue en blanco
         setTimeout(() => {
             inicializarMapaPrincipal();
             if (mapaPrincipal) {
@@ -456,10 +453,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     </form>
                 </div>
                 <div class="card-section">
-                    <h4><i class="fa-solid fa-list-check"></i> Catálogo de Suministros</h4>
+                    <h4><i class="fa-solid fa-list-check"></i> Catálogo de Suministros (Control de Ventas y Stock)</h4>
                     <div class="table-responsive">
                         <table class="tabla-inventario">
-                            <thead><tr><th>Producto</th><th>Stock</th><th>Costo</th><th>IVA/Margen</th><th>Público</th><th>Acción</th></tr></thead>
+                            <thead><tr><th>Producto</th><th>Stock / Mín</th><th>Público</th><th>Ventas (+/-)</th><th>Acción</th></tr></thead>
                             <tbody id="tabla-body"></tbody>
                         </table>
                     </div>
@@ -512,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <strong style="color:#1e293b;">Ruta: ${f.origen} ➔ ${f.destino}</strong>
                     <p style="font-size:0.78rem; color:#64748b; margin:2px 0;">Detalle: ${f.carga} | Tarifa: $${parseInt(f.tarifa).toLocaleString()} COP</p>
                     <p style="font-size:0.78rem; color:${f.estado==='Disponible'?'#d97706':'#16a34a'}; font-weight:bold;">Estado: ${f.estado}</p>
-                    <button onclick="abrirChatFlete('${f.id}', 'Transportador')" style="background:#2563eb; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer; margin-top:4px; position:relative;"><i class="fa-solid fa-comments"></i> Abrir Chat / Negociar ${f.mensajesNoLeidosEmpresa ? '<span style="position:absolute; top:-5px; right:-5px; background:red; color:white; border-radius:50%; padding:2px 6px; font-size:0.6rem;">•</span>' : ''}</button>
+                    <button type="button" onclick="abrirChatFlete('${f.id}', 'Transportador')" style="background:#2563eb; color:#fff; border:none; padding:5px 10px; border-radius:6px; font-size:0.75rem; cursor:pointer; margin-top:4px; position:relative;"><i class="fa-solid fa-comments"></i> Abrir Chat / Negociar ${f.mensajesNoLeidosEmpresa ? '<span style="position:absolute; top:-5px; right:-5px; background:red; color:white; border-radius:50%; padding:2px 6px; font-size:0.6rem;">•</span>' : ''}</button>
                 </div>
             `;
         });
@@ -990,7 +987,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            // Activar bandera para prevenir redirecciones de sesión por eventos de nube concurrentes
             flagGuardandoInventario = true;
             guardarEnNube(() => {
                 setTimeout(() => { flagGuardandoInventario = false; }, 500);
@@ -1013,18 +1009,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tablaBody.innerHTML = '';
         usrData.inventario.forEach(prod => {
+            const stockAlerta = prod.stock <= prod.minimo;
             const tr = document.createElement('tr');
+            if (stockAlerta) {
+                tr.style.background = "#fef2f2";
+            }
             tr.innerHTML = `
-                <td><strong>${prod.nombre}</strong><br><small style="color:#dc2626;">${prod.codigo}</small></td>
-                <td>${prod.stock}</td>
-                <td>$${prod.costoCompra.toLocaleString()}</td>
-                <td style="font-size:0.75rem;">IVA ${prod.ivaPorcentaje}%</td>
+                <td>
+                    <strong>${prod.nombre}</strong><br>
+                    <small style="color:${stockAlerta ? '#dc2626' : '#64748b'}; font-weight:${stockAlerta ? 'bold' : 'normal'};">
+                        ${stockAlerta ? '⚠️ STOCK BAJO (' + prod.stock + '/' + prod.minimo + ')' : 'Stock: ' + prod.stock + ' (Mín: ' + prod.minimo + ')'}
+                    </small>
+                </td>
+                <td>${prod.stock} un.</td>
                 <td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()}</td>
-                <td><button type="button" onclick="editarProducto('${prod.id}')" style="background:#eab308; color:#fff; border:none; padding:4px 8px; border-radius:4px;"><i class="fa-solid fa-pen"></i></button></td>
+                <td>
+                    <button type="button" onclick="cambiarStock('${prod.id}', -1)" style="background:#dc2626; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer;">-</button>
+                    <button type="button" onclick="cambiarStock('${prod.id}', 1)" style="background:#16a34a; color:#fff; border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; margin-left:4px;">+</button>
+                </td>
+                <td>
+                    <button type="button" onclick="editarProducto('${prod.id}')" style="background:#eab308; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer;"><i class="fa-solid fa-pen"></i></button>
+                </td>
             `;
             tablaBody.appendChild(tr);
         });
     }
+
+    window.cambiarStock = function(id, cantidadCambio) {
+        const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        if (!usrData || !usrData.inventario) return;
+        const prod = usrData.inventario.find(p => p.id === id);
+        if (!prod) return;
+
+        prod.stock += cantidadCambio;
+        if (prod.stock < 0) prod.stock = 0;
+
+        flagGuardandoInventario = true;
+        guardarEnNube(() => {
+            setTimeout(() => { flagGuardandoInventario = false; }, 500);
+        });
+        renderizarTabla();
+    };
 
     window.editarProducto = function(id) {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
@@ -1042,57 +1067,66 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function poblarSelectorComparador() {
-        const productosUnicos = new Set();
+        const palabrasClaveSet = new Set();
         Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
             const u = baseDeDatosUsuarios[usrKey];
             if (u.rol === 'empresa' && u.inventario) {
-                u.inventario.forEach(p => productosUnicos.add(p.nombre));
+                u.inventario.forEach(p => {
+                    const nombreLimpio = p.nombre.toLowerCase().trim();
+                    const primeraPalabra = nombreLimpio.split(' ')[0];
+                    if (primeraPalabra.length > 2) palabrasClaveSet.add(primeraPalabra);
+                    palabrasClaveSet.add(nombreLimpio);
+                });
             }
         });
 
         selectProductoComparar.innerHTML = '';
-        productosUnicos.forEach(nombreProd => {
+        palabrasClaveSet.forEach(item => {
             const opt = document.createElement('option');
-            opt.value = nombreProd;
-            opt.textContent = nombreProd;
+            opt.value = item;
+            opt.textContent = item.toUpperCase();
             selectProductoComparar.appendChild(opt);
         });
     }
 
     function actualizarComparacionPrecios() {
-        const prodSel = selectProductoComparar.value;
-        if (!prodSel) {
-            resultadoComparacion.innerHTML = `<p style="color:#64748b;">No hay productos para comparar.</p>`;
+        const queryFiltro = selectProductoComparar.value.toLowerCase().trim();
+        if (!queryFiltro) {
+            resultadoComparacion.innerHTML = `<p style="color:#64748b;">Selecciona un producto para comparar.</p>`;
             return;
         }
 
-        let html = `<table class="tabla-inventario"><thead><tr><th>Empresa Proveedora</th><th>Ubicación</th><th>Precio Público</th></tr></thead><tbody>`;
+        let html = `<table class="tabla-inventario"><thead><tr><th>Empresa Proveedora</th><th>Producto Coincidente</th><th>Precio Público</th></tr></thead><tbody>`;
         let mejorPrecio = Infinity;
         let mejorSedeName = "";
 
         Object.keys(baseDeDatosUsuarios).forEach(usrKey => {
             const usr = baseDeDatosUsuarios[usrKey];
             if (usr.rol === 'empresa' && usr.inventario) {
-                const prod = usr.inventario.find(p => p.nombre === prodSel);
-                if (prod) {
-                    if (prod.precio < mejorPrecio) {
-                        mejorPrecio = prod.precio;
-                        mejorSedeName = usr.nombreOriginal;
+                usr.inventario.forEach(prod => {
+                    const nomProd = prod.nombre.toLowerCase();
+                    if (nomProd.includes(queryFiltro) || queryFiltro.includes(nomProd.split(' ')[0])) {
+                        if (prod.precio < mejorPrecio) {
+                            mejorPrecio = prod.precio;
+                            mejorSedeName = usr.nombreOriginal;
+                        }
+                        html += `
+                            <tr>
+                                <td><strong>${usr.nombreOriginal}</strong><br><small>${usr.ciudad}</small></td>
+                                <td>${prod.nombre}</td>
+                                <td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()} COP</td>
+                            </tr>
+                        `;
                     }
-                    html += `
-                        <tr>
-                            <td><strong>${usr.nombreOriginal}</strong></td>
-                            <td>${usr.ciudad}</td>
-                            <td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()} COP</td>
-                        </tr>
-                    `;
-                }
+                });
             }
         });
         html += `</tbody></table>`;
 
         if (mejorPrecio !== Infinity) {
-            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Precio:</strong> ${mejorSedeName} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong>.</div>` + html;
+            html = `<div style="background:#f0fdf4; border:1px solid #86efac; padding:8px; border-radius:8px; margin-bottom:8px; color:#15803d; font-size:0.8rem;">💡 <strong>Mejor Opción en la Red:</strong> ${mejorSedeName} a solo <strong>$${mejorPrecio.toLocaleString()} COP</strong>.</div>` + html;
+        } else {
+            html = `<p style="font-size:0.85rem; color:#dc2626;">No se encontraron productos similares con ese criterio en otras sedes.</p>`;
         }
         resultadoComparacion.innerHTML = html;
     }
