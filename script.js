@@ -61,7 +61,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let chatsFletesGlobal = {};
     let baseDeDatosUsuarios = cuentasPredeterminadas;
 
-    // Blindaje estricto de sesión en memoria local
     let usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026') || null;
     let productosDetectadosTemporal = [];
     let logoBase64Perfil = "";
@@ -70,8 +69,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let mapaPrincipal = null;
     let mapaPerfil = null;
     let marcadorPerfil = null;
+    let flagGuardandoInventario = false; // Bandera para evitar bucles de recarga
 
-    // Sincronización en Tiempo Real
+    // Sincronización en Tiempo Real optimizada
     db.ref('logistica_ubate_v2026').on('value', (snapshot) => {
         const data = snapshot.val();
         if (data) {
@@ -82,12 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
             guardarEnNube();
         }
 
-        // Asegurar respaldo de sesión si localStorage sigue vivo
         if (!usuarioSesionActiva) {
             usuarioSesionActiva = localStorage.getItem('sesion_activa_ubate_v2026');
         }
 
-        // Si hay sesión activa y el usuario existe en la BD, mantenemos la app abierta sin botar al login
         if (usuarioSesionActiva && baseDeDatosUsuarios[usuarioSesionActiva]) {
             const pantallaLogin = document.getElementById('pantalla-login');
             const pantallaApp = document.getElementById('pantalla-app');
@@ -97,18 +95,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 pantallaApp.classList.remove('hidden');
                 iniciarAppConfig();
             } else if (pantallaApp && !pantallaApp.classList.contains('hidden')) {
-                if (!document.getElementById('modal-chat-uber').classList.contains('hidden') && fleteChatActivoId) {
-                    renderizarMensajesChat();
+                // Si estamos guardando inventario, evitamos redibujar todo bruscamente para que no saque al usuario
+                if (!flagGuardandoInventario) {
+                    if (!document.getElementById('sheet-productos').classList.contains('hidden')) {
+                        renderizarTabla();
+                    }
+                    if (!document.getElementById('modal-chat-uber').classList.contains('hidden') && fleteChatActivoId) {
+                        renderizarMensajesChat();
+                    }
                 }
             }
         }
     });
 
-    function guardarEnNube() {
+    function guardarEnNube(callback) {
         db.ref('logistica_ubate_v2026').set({
             fletes: bolsaFletesGlobal,
             chats: chatsFletesGlobal,
             usuarios: baseDeDatosUsuarios
+        }, () => {
+            if (typeof callback === 'function') callback();
         });
     }
 
@@ -374,7 +380,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         configurarContenidoSheet();
-        setTimeout(() => inicializarMapaPrincipal(), 300);
+        
+        // Forzar renderizado y ajuste del mapa para que nunca cargue en blanco
+        setTimeout(() => {
+            inicializarMapaPrincipal();
+            if (mapaPrincipal) {
+                mapaPrincipal.invalidateSize();
+            }
+        }, 200);
     }
 
     function configurarContenidoSheet() {
@@ -681,11 +694,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (tabName === 'explorar') {
             navExplorar.classList.add('active');
             chipMapa.classList.add('active');
-            if (mapaPrincipal) mapaPrincipal.invalidateSize();
+            if (mapaPrincipal) {
+                mapaPrincipal.invalidateSize();
+            }
         } else if (tabName === 'productos') {
             navMisProductos.classList.add('active');
             if(chipMisProductos) chipMisProductos.classList.add('active');
             sheetProductos.classList.remove('hidden');
+            renderizarTabla();
         } else if (tabName === 'pedir-flete' && usrData.rol === 'empresa') {
             if(navPedirFleteTab) navPedirFleteTab.classList.add('active');
             if(chipPedirFlete) chipPedirFlete.classList.add('active');
@@ -904,6 +920,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         let ingresados = 0;
 
+        if (!usrData.inventario) usrData.inventario = [];
+
         productosDetectadosTemporal.forEach((prod, idx) => {
             const nombreCorregido = document.getElementById(`aud-nombre-${idx}`).value.trim();
             const cantidadCorregida = parseInt(document.getElementById(`aud-cant-${idx}`).value) || 1;
@@ -929,9 +947,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        guardarEnNube();
+        flagGuardandoInventario = true;
+        guardarEnNube(() => {
+            setTimeout(() => { flagGuardandoInventario = false; }, 500);
+        });
+
         renderizarTabla();
-        inicializarMapaPrincipal();
         document.getElementById('modal-auditoria-factura').classList.add('hidden');
         alert(`✅ ¡Ingresados ${ingresados} productos al stock en la nube!`);
     });
@@ -943,6 +964,8 @@ document.addEventListener('DOMContentLoaded', () => {
         formProducto.addEventListener('submit', (e) => {
             e.preventDefault();
             const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+            if (!usrData.inventario) usrData.inventario = [];
+
             const id = document.getElementById('prod-id').value;
             const codigo = document.getElementById('prod-codigo').value.trim() || ("REF-" + Math.floor(1000 + Math.random() * 9000));
             const nombre = document.getElementById('prod-nombre').value.trim();
@@ -967,11 +990,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
 
-            guardarEnNube();
+            // Activar bandera para prevenir redirecciones de sesión por eventos de nube concurrentes
+            flagGuardandoInventario = true;
+            guardarEnNube(() => {
+                setTimeout(() => { flagGuardandoInventario = false; }, 500);
+            });
+
             formProducto.reset();
             document.getElementById('prod-id').value = '';
             renderizarTabla();
-            inicializarMapaPrincipal();
             alert("✅ Producto guardado en la nube.");
         });
     }
@@ -982,6 +1009,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
         if (!usrData || usrData.rol !== 'empresa') return;
 
+        if (!usrData.inventario) usrData.inventario = [];
+
         tablaBody.innerHTML = '';
         usrData.inventario.forEach(prod => {
             const tr = document.createElement('tr');
@@ -991,7 +1020,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>$${prod.costoCompra.toLocaleString()}</td>
                 <td style="font-size:0.75rem;">IVA ${prod.ivaPorcentaje}%</td>
                 <td style="color:#16a34a; font-weight:bold;">$${prod.precio.toLocaleString()}</td>
-                <td><button onclick="editarProducto('${prod.id}')" style="background:#eab308; color:#fff; border:none; padding:4px 8px; border-radius:4px;"><i class="fa-solid fa-pen"></i></button></td>
+                <td><button type="button" onclick="editarProducto('${prod.id}')" style="background:#eab308; color:#fff; border:none; padding:4px 8px; border-radius:4px;"><i class="fa-solid fa-pen"></i></button></td>
             `;
             tablaBody.appendChild(tr);
         });
@@ -999,6 +1028,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.editarProducto = function(id) {
         const usrData = baseDeDatosUsuarios[usuarioSesionActiva];
+        if (!usrData.inventario) return;
         const prod = usrData.inventario.find(p => p.id === id);
         if (!prod) return;
         document.getElementById('prod-id').value = prod.id;
